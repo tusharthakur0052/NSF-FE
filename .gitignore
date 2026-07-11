@@ -1,0 +1,25 @@
+node_modules
+dist
+dist-ssr
+package-lock.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Dependencies
+node_modules/
+
+# Build
+build/
+dist/
+.vite/
+coverage/
+.parcel-cache/
