@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Download,
@@ -21,22 +21,15 @@ export interface Member {
   status: 'Active' | 'Expiring Soon' | 'Expired';
   lastVisit: string;
   joinDate: string;
+  dob?: string;
+  fingerprintId?: string;
+  address?: string;
+  subscriptionPlanId?: string;
 }
 
-const initialMembers: Member[] = [
-  { id: 'M-1000', name: 'Aarav Sharma', phone: '+91 9800000000', age: 18, plan: 'Basic', status: 'Active', lastVisit: '2026-07-07', joinDate: '2026-06-07' },
-  { id: 'M-1001', name: 'Vihaan Mehta', phone: '+91 9800012345', age: 21, plan: 'Standard', status: 'Active', lastVisit: '2026-06-24', joinDate: '2026-05-27' },
-  { id: 'M-1002', name: 'Reyansh Kapoor', phone: '+91 9800024690', age: 24, plan: 'Premium', status: 'Active', lastVisit: '2026-06-11', joinDate: '2026-05-16' },
-  { id: 'M-1003', name: 'Ishaan Gupta', phone: '+91 9800037035', age: 27, plan: 'Elite', status: 'Expiring Soon', lastVisit: '2026-05-29', joinDate: '2026-05-05' },
-  { id: 'M-1004', name: 'Aadhya Das', phone: '+91 9800049380', age: 30, plan: 'Quarterly', status: 'Expired', lastVisit: '2026-06-30', joinDate: '2026-04-24' },
-  { id: 'M-1005', name: 'Myra Singh', phone: '+91 9800061725', age: 33, plan: 'Annual', status: 'Active', lastVisit: '2026-06-17', joinDate: '2026-04-13' },
-  { id: 'M-1006', name: 'Pari Rao', phone: '+91 9800074070', age: 36, plan: 'Basic', status: 'Active', lastVisit: '2026-06-04', joinDate: '2026-04-02' },
-  { id: 'M-1007', name: 'Vivaan Kumar', phone: '+91 9800086415', age: 39, plan: 'Standard', status: 'Active', lastVisit: '2026-07-06', joinDate: '2026-03-22' },
-  { id: 'M-1008', name: 'Arjun Joshi', phone: '+91 9800098760', age: 42, plan: 'Premium', status: 'Active', lastVisit: '2026-06-23', joinDate: '2026-03-11' },
-];
-
 export const MembersPage: React.FC = () => {
-  const [members, setMembers] = useState<Member[]>(initialMembers);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [planFilter, setPlanFilter] = useState('All Plans');
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -50,57 +43,164 @@ export const MembersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const getHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'accept': '*/*',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  // Fetch plans and members
+  const fetchData = async () => {
+    try {
+      const headers = getHeaders();
+      
+      // Fetch plans first to build a mapping dictionary
+      const plansResponse = await fetch('http://localhost:9001/subscription-plans', { headers });
+      const plansData = await plansResponse.json();
+      let activePlans = [];
+      const planMap: Record<string, string> = {};
+      
+      if (plansData && plansData.success && Array.isArray(plansData.data)) {
+        activePlans = plansData.data;
+        setPlans(activePlans);
+        activePlans.forEach((p: any) => {
+          planMap[p._id] = p.title;
+        });
+      }
+
+      // Fetch members
+      const membersResponse = await fetch('http://localhost:9001/users', { headers });
+      const membersData = await membersResponse.json();
+      
+      if (membersData && membersData.success && Array.isArray(membersData.data)) {
+        const mappedMembers: Member[] = membersData.data.map((user: any) => {
+          return {
+            id: user._id,
+            name: `${user.firstName} ${user.lastName}`,
+            phone: user.phoneNumber,
+            age: user.age,
+            plan: planMap[user.subscriptionPlanId] || 'Standard',
+            status: user.subscriptionIsActive ? 'Active' : 'Expired',
+            lastVisit: user.updatedAt ? new Date(user.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            joinDate: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            dob: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
+            fingerprintId: user.fingerPrint || '',
+            address: user.address || '',
+            subscriptionPlanId: user.subscriptionPlanId,
+          };
+        });
+        setMembers(mappedMembers);
+      }
+    } catch (error) {
+      console.error('Error fetching data from backend:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   // Get Initials for Avatar
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
   // Add Member handler
-  const handleAddMember = (newMemberData: any) => {
-    const nextId = `M-${1000 + members.length}`;
-    const newMember: Member = {
-      id: nextId,
-      name: newMemberData.name,
-      phone: newMemberData.phone,
-      age: parseInt(newMemberData.age, 10) || 25,
-      plan: newMemberData.plan,
-      status: newMemberData.status,
-      lastVisit: newMemberData.lastVisit,
-      joinDate: newMemberData.joinDate,
-    };
-    setMembers([newMember, ...members]);
-    setCurrentPage(1); // Go to first page to see the new member
+  const handleAddMember = async (newMemberData: any) => {
+    try {
+      const headers = getHeaders();
+      const payload = {
+        firstName: newMemberData.firstName,
+        lastName: newMemberData.lastName,
+        phoneNumber: newMemberData.phone,
+        isWhatsAppNo: true,
+        gender: 'male',
+        age: parseInt(newMemberData.age, 10) || 25,
+        dateOfBirth: new Date(newMemberData.dob).toISOString(),
+        address: newMemberData.address,
+        fingerPrint: newMemberData.fingerprintId || 'FP-0001',
+        subscriptionPlanId: newMemberData.plan,
+        subscriptionIsActive: newMemberData.status === 'Active'
+      };
+
+      const response = await fetch('http://localhost:9001/users', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create user');
+      }
+
+      await fetchData();
+      setCurrentPage(1);
+    } catch (error: any) {
+      alert(error.message || 'Something went wrong while creating the member.');
+    }
   };
 
   // Edit Member handler
-  const handleEditMember = (id: string, updatedData: any) => {
-    setMembers(
-      members.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              name: updatedData.name,
-              phone: updatedData.phone,
-              age: updatedData.age,
-              plan: updatedData.plan,
-              status: updatedData.status,
-              joinDate: updatedData.joinDate,
-              dob: updatedData.dob,
-              fingerprintId: updatedData.fingerprintId,
-              address: updatedData.address,
-            }
-          : m
-      )
-    );
+  const handleEditMember = async (id: string, updatedData: any) => {
+    try {
+      const headers = getHeaders();
+      const payload = {
+        firstName: updatedData.firstName,
+        lastName: updatedData.lastName,
+        phoneNumber: updatedData.phone,
+        isWhatsAppNo: true,
+        gender: 'male',
+        age: parseInt(updatedData.age, 10) || 25,
+        dateOfBirth: new Date(updatedData.dob).toISOString(),
+        address: updatedData.address,
+        fingerPrint: updatedData.fingerprintId || 'FP-0001',
+        subscriptionPlanId: updatedData.plan,
+        subscriptionIsActive: updatedData.status === 'Active'
+      };
+
+      const response = await fetch(`http://localhost:9001/users/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update user');
+      }
+
+      await fetchData();
+    } catch (error: any) {
+      alert(error.message || 'Something went wrong while updating the member.');
+    }
   };
 
   // Delete Member handler
-  const confirmDeleteMember = () => {
+  const confirmDeleteMember = async () => {
     if (memberToDelete) {
-      setMembers(members.filter(m => m.id !== memberToDelete.id));
-      setDeleteModalOpen(false);
-      setMemberToDelete(null);
-      setCurrentPage(1);
+      try {
+        const headers = getHeaders();
+        const response = await fetch(`http://localhost:9001/users/${memberToDelete.id}`, {
+          method: 'DELETE',
+          headers
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to delete user');
+        }
+
+        await fetchData();
+        setDeleteModalOpen(false);
+        setMemberToDelete(null);
+        setCurrentPage(1);
+      } catch (error: any) {
+        alert(error.message || 'Something went wrong while deleting the member.');
+      }
     }
   };
 

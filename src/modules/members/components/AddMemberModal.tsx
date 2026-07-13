@@ -34,6 +34,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [plans, setPlans] = useState<any[]>([]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -47,7 +48,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           age: member.age?.toString() || '',
           fingerprintId: (member as any).fingerprintId || '',
           address: (member as any).address || '',
-          plan: member.plan || 'Standard',
+          plan: (member as any).subscriptionPlanId || member.plan || '',
           status: member.status || 'Active',
           joinDate: member.joinDate || new Date().toISOString().split('T')[0],
         });
@@ -68,6 +69,29 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       setErrors({});
     }
   }, [isOpen, member, mode]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const token = localStorage.getItem('accessToken');
+      fetch('http://localhost:9001/subscription-plans', {
+        headers: {
+          'accept': '*/*',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData && resData.success && Array.isArray(resData.data)) {
+          setPlans(resData.data);
+          // If we are in 'add' mode and have plans, default the selected plan to the first plan's ID
+          if (mode === 'add' && resData.data.length > 0 && !formData.plan) {
+            setFormData(prev => ({ ...prev, plan: resData.data[0]._id }));
+          }
+        }
+      })
+      .catch(err => console.error("Error fetching subscription plans:", err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -102,9 +126,10 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       return;
     }
 
-    const fullName = `${formData.firstName} ${formData.lastName}`;
     const payload = {
-      name: fullName,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      name: `${formData.firstName} ${formData.lastName}`,
       phone: formData.phone,
       age: parseInt(formData.age, 10) || 25,
       plan: formData.plan,
@@ -138,14 +163,18 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     onClose();
   };
 
-  const planOptions = [
-    { value: 'Basic', label: 'Basic' },
-    { value: 'Standard', label: 'Standard' },
-    { value: 'Premium', label: 'Premium' },
-    { value: 'Elite', label: 'Elite' },
-    { value: 'Quarterly', label: 'Quarterly' },
-    { value: 'Annual', label: 'Annual' },
-  ];
+
+
+  const planOptions = plans.length > 0
+    ? plans.map(p => ({ value: p._id, label: `${p.title} (₹${p.price})` }))
+    : [
+        { value: 'Basic', label: 'Basic' },
+        { value: 'Standard', label: 'Standard' },
+        { value: 'Premium', label: 'Premium' },
+        { value: 'Elite', label: 'Elite' },
+        { value: 'Quarterly', label: 'Quarterly' },
+        { value: 'Annual', label: 'Annual' },
+      ];
 
   const statusOptions = [
     { value: 'Active', label: 'Active' },

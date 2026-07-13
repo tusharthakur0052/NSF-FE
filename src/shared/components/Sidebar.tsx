@@ -16,11 +16,13 @@ import {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
-  onClose
+  onClose,
+  onLogout
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-4 border-t border-slate-100">
           <button
             className="flex items-center w-full gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-left"
-            onClick={() => alert('Logout clicked')}
+            onClick={() => onLogout && onLogout()}
           >
             <LogOut className="w-5 h-5 text-slate-400" />
             <span className="text-sm font-medium">Logout</span>

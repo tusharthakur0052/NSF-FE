@@ -1,18 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Users, Edit3, Trash2, Power, Award } from 'lucide-react';
 import { AddEditPlanModal, type Plan } from '../components/AddEditPlanModal';
 import { DeleteConfirmationModal } from '@/shared';
 
-const initialPlans: Plan[] = [
-  { id: '1', name: 'Basic', description: 'Access to core equipment', duration: '1 Month', price: '₹1,499', status: 'Active', members: 142, popular: false },
-  { id: '2', name: 'Standard', description: 'Core + group classes', duration: '3 Months', price: '₹3,999', status: 'Active', members: 198, popular: false },
-  { id: '3', name: 'Premium', description: 'All classes + trainer', duration: '6 Months', price: '₹7,499', status: 'Active', members: 156, popular: true },
-  { id: '4', name: 'Elite', description: 'Unlimited + personal coach', duration: '12 Months', price: '₹13,999', status: 'Active', members: 68, popular: false },
-  { id: '5', name: 'Student', description: 'Discounted student plan', duration: '3 Months', price: '₹2,999', status: 'Inactive', members: 34, popular: false },
-];
-
 export const PlansPage: React.FC = () => {
-  const [plans, setPlans] = useState<Plan[]>(initialPlans);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -24,6 +16,53 @@ export const PlansPage: React.FC = () => {
     return `₹${Number(price).toLocaleString('en-IN')}`;
   };
 
+  const getHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'accept': '*/*',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch('http://localhost:9001/subscription-plans', {
+        headers: getHeaders()
+      });
+      const resData = await response.json();
+      if (resData && resData.success && Array.isArray(resData.data)) {
+        const mappedPlans = resData.data.map((plan: any) => {
+          let duration = '1 Month';
+          let description = plan.description || '';
+          if (description.includes(' | ')) {
+            const parts = description.split(' | ');
+            duration = parts[0];
+            description = parts.slice(1).join(' | ');
+          }
+          
+          return {
+            id: plan._id,
+            name: plan.title,
+            description: description,
+            duration: duration,
+            price: `₹${plan.price}`,
+            status: plan.isActive ? 'Active' : 'Inactive',
+            members: 0,
+            popular: plan.description.toLowerCase().includes('popular') || false
+          };
+        });
+        setPlans(mappedPlans);
+      }
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
   const handleCreateClick = () => {
     setEditingPlan(null);
     setIsModalOpen(true);
@@ -34,16 +73,27 @@ export const PlansPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleToggleStatus = (id: string) => {
-    setPlans(plans.map(p => {
-      if (p.id === id) {
-        return {
-          ...p,
-          status: p.status === 'Active' ? 'Inactive' : 'Active'
-        };
+  const handleToggleStatus = async (id: string) => {
+    try {
+      const plan = plans.find(p => p.id === id);
+      if (!plan) return;
+
+      const newIsActive = plan.status !== 'Active';
+      const response = await fetch(`http://localhost:9001/subscription-plans/${id}/status`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ isActive: newIsActive })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Failed to update plan status');
       }
-      return p;
-    }));
+
+      await fetchPlans();
+    } catch (error: any) {
+      alert(error.message || 'Something went wrong while updating plan status.');
+    }
   };
 
   const handleDeleteClick = (plan: Plan) => {
@@ -51,44 +101,70 @@ export const PlansPage: React.FC = () => {
     setDeleteModalOpen(true);
   };
 
-  const confirmDeletePlan = () => {
+  const confirmDeletePlan = async () => {
     if (planToDelete && planToDelete.id) {
-      setPlans(plans.filter(p => p.id !== planToDelete.id));
-      setDeleteModalOpen(false);
-      setPlanToDelete(null);
+      try {
+        const response = await fetch(`http://localhost:9001/subscription-plans/${planToDelete.id}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || 'Failed to delete plan');
+        }
+
+        await fetchPlans();
+        setDeleteModalOpen(false);
+        setPlanToDelete(null);
+      } catch (error: any) {
+        alert(error.message || 'Something went wrong while deleting the plan.');
+      }
     }
   };
 
-  const handleSavePlan = (planData: Plan) => {
-    if (editingPlan && editingPlan.id) {
-      // Edit mode
-      setPlans(plans.map(p => {
-        if (p.id === editingPlan.id) {
-          return {
-            ...p,
-            name: planData.name,
-            description: planData.description,
-            duration: planData.duration,
-            price: formatPrice(planData.price),
-            status: planData.status,
-            popular: planData.popular,
-          };
-        }
-        return p;
-      }));
-    } else {
-      // Add mode
-      const newPlan: Plan = {
-        id: (plans.length + 1).toString(),
-        name: planData.name,
-        description: planData.description,
-        duration: planData.duration,
-        price: formatPrice(planData.price),
-        status: planData.status,
-        members: 0,
-        popular: planData.popular,
+  const handleSavePlan = async (planData: Plan) => {
+    try {
+      const headers = getHeaders();
+      const serializedDescription = `${planData.duration} | ${planData.description}`;
+      // Clean price string to number
+      const numericPrice = Number(planData.price.replace(/[^\d]/g, ''));
+      
+      const payload = {
+        title: planData.name,
+        description: serializedDescription,
+        price: numericPrice,
       };
-      setPlans([...plans, newPlan]);
+
+      if (editingPlan && editingPlan.id) {
+        // Edit mode
+        const response = await fetch(`http://localhost:9001/subscription-plans/${editingPlan.id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || 'Failed to update plan');
+        }
+      } else {
+        // Add mode
+        const response = await fetch('http://localhost:9001/subscription-plans', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || 'Failed to create plan');
+        }
+      }
+
+      await fetchPlans();
+    } catch (error: any) {
+      alert(error.message || 'Something went wrong while saving the plan.');
     }
     setIsModalOpen(false);
   };
