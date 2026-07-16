@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Calendar, User } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import { Input } from '@/shared';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 
@@ -34,7 +34,7 @@ export const ProfilePage: React.FC = () => {
     setEditName(adminData.fullName);
   };
 
-  const handlePasswordConfirm = (newPassword: string) => {
+  const handlePasswordConfirm = (_newPassword: string) => {
     alert('Password updated successfully!');
   };
 

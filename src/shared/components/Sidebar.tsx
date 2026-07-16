@@ -5,8 +5,6 @@ import {
   Users,
   CreditCard,
   ClipboardList,
-  BarChart3,
-  Settings,
   User,
   LogOut,
   X,

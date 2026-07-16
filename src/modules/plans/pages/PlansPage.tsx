@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Plus, Users, Edit3, Trash2, Power, Award } from 'lucide-react';
 import { AddEditPlanModal, type Plan } from '../components/AddEditPlanModal';
 import { DeleteConfirmationModal, useModal } from '@/shared';
@@ -8,7 +8,6 @@ export const PlansPage: React.FC = () => {
   const {
     plans,
     loading,
-    fetchPlans,
     handleToggleStatus,
     handleDeletePlan,
     handleSavePlan,
@@ -24,7 +23,7 @@ export const PlansPage: React.FC = () => {
   };
 
   const onSave = async (planData: Plan) => {
-    await handleSavePlan(planData, planModal.activeItem ? planModal.activeItem.id : null);
+    await handleSavePlan(planData, planModal.activeItem?.id || null);
     planModal.close();
   };
 
@@ -199,7 +198,7 @@ export const PlansPage: React.FC = () => {
         isOpen={planModal.isOpen}
         onClose={planModal.close}
         onSave={onSave}
-        plan={planModal.activeItem}
+        planToEdit={planModal.activeItem}
       />
 
       {/* Delete Confirmation Modal */}
