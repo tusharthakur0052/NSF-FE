@@ -31,6 +31,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     plan: 'Standard',
     status: 'Active',
     joinDate: new Date().toISOString().split('T')[0],
+    paymentMethod: 'Cash',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,6 +52,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           plan: (member as any).subscriptionPlanId || member.plan || '',
           status: member.status || 'Active',
           joinDate: member.joinDate || new Date().toISOString().split('T')[0],
+          paymentMethod: (member as any).paymentMethod || 'Cash',
         });
       } else {
         setFormData({
@@ -64,6 +66,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           plan: 'Standard',
           status: 'Active',
           joinDate: new Date().toISOString().split('T')[0],
+          paymentMethod: 'Cash',
         });
       }
       setErrors({});
@@ -73,23 +76,23 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       const token = localStorage.getItem('accessToken');
-      fetch('http://localhost:9001/subscription-plans', {
+      fetch(`${process.env.VITE_API_BASE_URL}/subscription-plans`, {
         headers: {
           'accept': '*/*',
           'Authorization': `Bearer ${token}`
         }
       })
-      .then(res => res.json())
-      .then(resData => {
-        if (resData && resData.success && Array.isArray(resData.data)) {
-          setPlans(resData.data);
-          // If we are in 'add' mode and have plans, default the selected plan to the first plan's ID
-          if (mode === 'add' && resData.data.length > 0 && !formData.plan) {
-            setFormData(prev => ({ ...prev, plan: resData.data[0]._id }));
+        .then(res => res.json())
+        .then(resData => {
+          if (resData && resData.success && Array.isArray(resData.data)) {
+            setPlans(resData.data);
+            // If we are in 'add' mode and have plans, default the selected plan to the first plan's ID
+            if (mode === 'add' && resData.data.length > 0 && !formData.plan) {
+              setFormData(prev => ({ ...prev, plan: resData.data[0]._id }));
+            }
           }
-        }
-      })
-      .catch(err => console.error("Error fetching subscription plans:", err));
+        })
+        .catch(err => console.error("Error fetching subscription plans:", err));
     }
   }, [isOpen]);
 
@@ -97,7 +100,22 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    let extra = {};
+    if (name === 'dob' && value) {
+      const birthDate = new Date(value);
+      if (!isNaN(birthDate.getTime())) {
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+        extra = { age: calculatedAge.toString() };
+      }
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value, ...extra }));
     if (errors[name]) {
       setErrors((prev) => {
         const copy = { ...prev };
@@ -113,7 +131,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Simple Validation
     const newErrors: Record<string, string> = {};
     if (!formData.firstName) newErrors.firstName = 'First name is required';
@@ -139,6 +157,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       dob: formData.dob,
       fingerprintId: formData.fingerprintId,
       address: formData.address,
+      paymentMethod: formData.paymentMethod,
     };
 
     if (mode === 'edit' && member && onEditMember) {
@@ -159,6 +178,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       plan: 'Standard',
       status: 'Active',
       joinDate: new Date().toISOString().split('T')[0],
+      paymentMethod: 'Cash',
     });
     onClose();
   };
@@ -168,13 +188,13 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const planOptions = plans.length > 0
     ? plans.map(p => ({ value: p._id, label: `${p.title} (₹${p.price})` }))
     : [
-        { value: 'Basic', label: 'Basic' },
-        { value: 'Standard', label: 'Standard' },
-        { value: 'Premium', label: 'Premium' },
-        { value: 'Elite', label: 'Elite' },
-        { value: 'Quarterly', label: 'Quarterly' },
-        { value: 'Annual', label: 'Annual' },
-      ];
+      { value: 'Basic', label: 'Basic' },
+      { value: 'Standard', label: 'Standard' },
+      { value: 'Premium', label: 'Premium' },
+      { value: 'Elite', label: 'Elite' },
+      { value: 'Quarterly', label: 'Quarterly' },
+      { value: 'Annual', label: 'Annual' },
+    ];
 
   const statusOptions = [
     { value: 'Active', label: 'Active' },
@@ -185,14 +205,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Modal Content */}
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto z-10 border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
@@ -200,14 +220,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
               {mode === 'view' ? 'Member Details' : mode === 'edit' ? 'Edit Member Details' : 'Register New Member'}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {mode === 'view' 
-                ? 'Viewing details and membership plan for this member' 
-                : mode === 'edit' 
-                  ? 'Update personal details and edit membership plan' 
+              {mode === 'view'
+                ? 'Viewing details and membership plan for this member'
+                : mode === 'edit'
+                  ? 'Update personal details and edit membership plan'
                   : 'Enter personal details and assign a membership plan'}
             </p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
           >
@@ -217,7 +237,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          
+
           {/* Section: Personal Info */}
           <div>
             <div className="flex items-center gap-2 mb-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -340,20 +360,31 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 icon={<Calendar className="w-4 h-4 text-slate-400" />}
                 disabled={mode === 'view'}
               />
+
+              <Select
+                label="Payment Method"
+                options={[
+                  { value: 'Cash', label: 'Cash' },
+                  { value: 'UPI', label: 'UPI' },
+                ]}
+                value={formData.paymentMethod}
+                onChange={(val) => handleSelectChange('paymentMethod', val)}
+                disabled={mode === 'view'}
+              />
             </div>
           </div>
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onClose}
               className="px-5 py-2.5 text-sm font-semibold border border-slate-200 text-slate-600 rounded-full hover:bg-slate-50 transition-colors"
             >
               {mode === 'view' ? 'Close' : 'Cancel'}
             </button>
             {mode !== 'view' && (
-              <button 
+              <button
                 type="submit"
                 className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-full shadow-md shadow-red-500/15 transition-all"
               >

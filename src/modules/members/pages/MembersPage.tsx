@@ -10,7 +10,8 @@ import {
   Trash2
 } from 'lucide-react';
 import { AddMemberModal } from '../components/AddMemberModal';
-import { Select, Pagination, DeleteConfirmationModal } from '@/shared';
+import { Select, Pagination, DeleteConfirmationModal, useModal, usePagination } from '@/shared';
+import { useMembers } from '../hooks/useMembers';
 
 export interface Member {
   id: string;
@@ -21,6 +22,7 @@ export interface Member {
   status: 'Active' | 'Expiring Soon' | 'Expired';
   lastVisit: string;
   joinDate: string;
+  latestSubscriptionDate?: string;
   dob?: string;
   fingerprintId?: string;
   address?: string;
@@ -28,185 +30,51 @@ export interface Member {
 }
 
 export const MembersPage: React.FC = () => {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
+  const {
+    members,
+    loading,
+    fetchData,
+    handleAddMember,
+    handleEditMember,
+    handleDeleteMember,
+  } = useMembers();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [planFilter, setPlanFilter] = useState('All Plans');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit' | 'view'>('add');
-  const [activeMember, setActiveMember] = useState<Member | null>(null);
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
+  const memberModal = useModal<Member>();
+  const deleteModal = useModal<Member>();
+  const { currentPage, setCurrentPage, resetPage } = usePagination(1);
   const itemsPerPage = 5;
 
-  const getHeaders = () => {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'accept': '*/*',
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  };
-
-  // Fetch plans and members
-  const fetchData = async () => {
-    try {
-      const headers = getHeaders();
-      
-      // Fetch plans first to build a mapping dictionary
-      const plansResponse = await fetch('http://localhost:9001/subscription-plans', { headers });
-      const plansData = await plansResponse.json();
-      let activePlans = [];
-      const planMap: Record<string, string> = {};
-      
-      if (plansData && plansData.success && Array.isArray(plansData.data)) {
-        activePlans = plansData.data;
-        setPlans(activePlans);
-        activePlans.forEach((p: any) => {
-          planMap[p._id] = p.title;
-        });
-      }
-
-      // Fetch members
-      const membersResponse = await fetch('http://localhost:9001/users', { headers });
-      const membersData = await membersResponse.json();
-      
-      if (membersData && membersData.success && Array.isArray(membersData.data)) {
-        const mappedMembers: Member[] = membersData.data.map((user: any) => {
-          return {
-            id: user._id,
-            name: `${user.firstName} ${user.lastName}`,
-            phone: user.phoneNumber,
-            age: user.age,
-            plan: planMap[user.subscriptionPlanId] || 'Standard',
-            status: user.subscriptionIsActive ? 'Active' : 'Expired',
-            lastVisit: user.updatedAt ? new Date(user.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            joinDate: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            dob: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
-            fingerprintId: user.fingerPrint || '',
-            address: user.address || '',
-            subscriptionPlanId: user.subscriptionPlanId,
-          };
-        });
-        setMembers(mappedMembers);
-      }
-    } catch (error) {
-      console.error('Error fetching data from backend:', error);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(statusFilter);
+  }, [statusFilter, fetchData]);
 
   // Get Initials for Avatar
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  // Add Member handler
-  const handleAddMember = async (newMemberData: any) => {
-    try {
-      const headers = getHeaders();
-      const payload = {
-        firstName: newMemberData.firstName,
-        lastName: newMemberData.lastName,
-        phoneNumber: newMemberData.phone,
-        isWhatsAppNo: true,
-        gender: 'male',
-        age: parseInt(newMemberData.age, 10) || 25,
-        dateOfBirth: new Date(newMemberData.dob).toISOString(),
-        address: newMemberData.address,
-        fingerPrint: newMemberData.fingerprintId || 'FP-0001',
-        subscriptionPlanId: newMemberData.plan,
-        subscriptionIsActive: newMemberData.status === 'Active'
-      };
-
-      const response = await fetch('http://localhost:9001/users', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create user');
-      }
-
-      await fetchData();
-      setCurrentPage(1);
-    } catch (error: any) {
-      alert(error.message || 'Something went wrong while creating the member.');
-    }
+  const onAddMemberSave = async (data: any) => {
+    await handleAddMember(data);
+    fetchData(statusFilter);
+    resetPage();
   };
 
-  // Edit Member handler
-  const handleEditMember = async (id: string, updatedData: any) => {
-    try {
-      const headers = getHeaders();
-      const payload = {
-        firstName: updatedData.firstName,
-        lastName: updatedData.lastName,
-        phoneNumber: updatedData.phone,
-        isWhatsAppNo: true,
-        gender: 'male',
-        age: parseInt(updatedData.age, 10) || 25,
-        dateOfBirth: new Date(updatedData.dob).toISOString(),
-        address: updatedData.address,
-        fingerPrint: updatedData.fingerprintId || 'FP-0001',
-        subscriptionPlanId: updatedData.plan,
-        subscriptionIsActive: updatedData.status === 'Active'
-      };
-
-      const response = await fetch(`http://localhost:9001/users/${id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
-      }
-
-      await fetchData();
-    } catch (error: any) {
-      alert(error.message || 'Something went wrong while updating the member.');
-    }
+  const onEditMemberSave = async (id: string, data: any) => {
+    await handleEditMember(id, data);
+    fetchData(statusFilter);
   };
 
-  // Delete Member handler
-  const confirmDeleteMember = async () => {
-    if (memberToDelete) {
-      try {
-        const headers = getHeaders();
-        const response = await fetch(`http://localhost:9001/users/${memberToDelete.id}`, {
-          method: 'DELETE',
-          headers
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to delete user');
-        }
-
-        await fetchData();
-        setDeleteModalOpen(false);
-        setMemberToDelete(null);
-        setCurrentPage(1);
-      } catch (error: any) {
-        alert(error.message || 'Something went wrong while deleting the member.');
-      }
+  const onDeleteConfirm = async () => {
+    if (deleteModal.activeItem) {
+      await handleDeleteMember(deleteModal.activeItem.id);
+      fetchData(statusFilter);
+      deleteModal.close();
+      resetPage();
     }
-  };
-
-  const handleDeleteTrigger = (member: Member) => {
-    setMemberToDelete(member);
-    setDeleteModalOpen(true);
   };
 
   // Filter & Search Logic
@@ -229,25 +97,31 @@ export const MembersPage: React.FC = () => {
     currentPage * itemsPerPage
   );
 
-  // Wrapper for state updates to reset page
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
-    setCurrentPage(1);
+    resetPage();
   };
 
   const handlePlanFilterChange = (val: string) => {
     setPlanFilter(val);
-    setCurrentPage(1);
+    resetPage();
   };
 
   const handleStatusFilterChange = (val: string) => {
     setStatusFilter(val);
-    setCurrentPage(1);
+    resetPage();
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -262,11 +136,7 @@ export const MembersPage: React.FC = () => {
           </button>
 
           <button
-            onClick={() => {
-              setModalMode('add');
-              setActiveMember(null);
-              setIsModalOpen(true);
-            }}
+            onClick={memberModal.openAdd}
             className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-full shadow-md shadow-red-500/15 transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -277,7 +147,6 @@ export const MembersPage: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-soft flex flex-col md:flex-row gap-4 items-center">
-
         {/* Search */}
         <div className="relative w-full md:flex-1">
           <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
@@ -330,7 +199,6 @@ export const MembersPage: React.FC = () => {
             <span>More</span>
           </button>
         </div>
-
       </div>
 
       {/* Table Container */}
@@ -344,15 +212,15 @@ export const MembersPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Age</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Plan</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Last Visit</th>
+                {/* <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Last Visit</th> */}
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Join Date</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Latest Subscription</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-slate-50/40 transition-colors">
-                  {/* Member Name and ID */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs">
@@ -360,27 +228,19 @@ export const MembersPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900">{member.name}</div>
-                        <div className="text-xs text-slate-400">{member.id}</div>
+                        <div className="text-xs text-slate-450">ID: {member.id}</div>
                       </div>
                     </div>
                   </td>
-
-                  {/* Phone */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
                     {member.phone}
                   </td>
-
-                  {/* Age */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-bold">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-650 font-medium">
                     {member.age}
                   </td>
-
-                  {/* Plan */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">
                     {member.plan}
                   </td>
-
-                  {/* Status Pills */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${member.status === 'Active'
                       ? 'bg-emerald-50 text-emerald-600'
@@ -388,46 +248,26 @@ export const MembersPage: React.FC = () => {
                         ? 'bg-amber-50 text-amber-600'
                         : 'bg-rose-50 text-rose-600'
                       }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${member.status === 'Active'
-                        ? 'bg-emerald-500'
-                        : member.status === 'Expiring Soon'
-                          ? 'bg-amber-500'
-                          : 'bg-rose-500'
-                        }`} />
                       {member.status}
                     </span>
                   </td>
-
-                  {/* Last Visit */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
-                    {member.lastVisit}
-                  </td>
-
-                  {/* Join Date */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
                     {member.joinDate}
                   </td>
-
-                  {/* Actions */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
+                    {member.latestSubscriptionDate}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => {
-                          setActiveMember(member);
-                          setModalMode('view');
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => memberModal.openView(member)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                         title="View Details"
                       >
                         <Eye className="w-4.5 h-4.5" />
                       </button>
                       <button
-                        onClick={() => {
-                          setActiveMember(member);
-                          setModalMode('edit');
-                          setIsModalOpen(true);
-                        }}
+                        onClick={() => memberModal.openEdit(member)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                         title="Edit Member"
                       >
@@ -441,7 +281,7 @@ export const MembersPage: React.FC = () => {
                         <RotateCw className="w-4.5 h-4.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteTrigger(member)}
+                        onClick={() => deleteModal.openEdit(member)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="Delete Member"
                       >
@@ -470,29 +310,28 @@ export const MembersPage: React.FC = () => {
 
       {/* Register / Edit / View Member Modal */}
       <AddMemberModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAddMember={handleAddMember}
-        onEditMember={handleEditMember}
-        mode={modalMode}
-        member={activeMember}
+        isOpen={memberModal.isOpen}
+        onClose={memberModal.close}
+        onAddMember={onAddMemberSave}
+        onEditMember={(id, data) => onEditMemberSave(id, data)}
+        mode={memberModal.mode}
+        member={memberModal.activeItem}
       />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={confirmDeleteMember}
+        isOpen={deleteModal.isOpen}
+        onClose={deleteModal.close}
+        onConfirm={onDeleteConfirm}
         title="Delete Member"
         description={
-          memberToDelete ? (
+          deleteModal.activeItem ? (
             <>
-              Are you sure you want to delete <span className="font-semibold text-slate-800">{memberToDelete.name}</span> ({memberToDelete.id})? This action cannot be undone.
+              Are you sure you want to delete <span className="font-semibold text-slate-800">{deleteModal.activeItem.name}</span> ({deleteModal.activeItem.id})? This action cannot be undone.
             </>
           ) : null
         }
       />
-
     </div>
   );
 };

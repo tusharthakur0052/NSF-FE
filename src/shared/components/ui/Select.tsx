@@ -14,6 +14,7 @@ interface SelectProps {
   required?: boolean;
   variant?: 'default' | 'pill';
   disabled?: boolean;
+  placeholder?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -24,6 +25,7 @@ export const Select: React.FC<SelectProps> = ({
   required = false,
   variant = 'default',
   disabled = false,
+  placeholder,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,7 @@ export const Select: React.FC<SelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+  const selectedOption = options.find((opt) => opt.value === value);
 
   const buttonClasses = variant === 'pill'
     ? "w-full flex items-center justify-between pl-4 pr-3.5 py-2.5 text-sm bg-slate-50 border-0 rounded-full hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-left text-slate-700 font-medium"
@@ -60,7 +62,9 @@ export const Select: React.FC<SelectProps> = ({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`${buttonClasses} ${disabled ? 'opacity-65 cursor-not-allowed bg-slate-100/30' : ''}`}
       >
-        <span>{selectedOption?.label}</span>
+        <span className={!selectedOption ? 'text-slate-400' : ''}>
+          {selectedOption ? selectedOption.label : (placeholder || 'Select option')}
+        </span>
         <ChevronDown className={`w-4.5 h-4.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-185' : ''}`} />
       </button>
 

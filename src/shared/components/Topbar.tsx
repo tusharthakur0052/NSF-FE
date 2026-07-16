@@ -94,7 +94,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick, onLogout }) => {
             </div>
             <div className="hidden sm:block text-left">
               <div className="text-sm font-semibold text-slate-900 leading-tight">Admin</div>
-              <div className="text-xs text-slate-500">admin@fitcore.io</div>
+              <div className="text-xs text-slate-500">admin@NSF.io</div>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
           </div>

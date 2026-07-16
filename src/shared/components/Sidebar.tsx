@@ -31,9 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { id: 'members', label: 'Members', icon: Users, path: '/member' },
     { id: 'plans', label: 'Subscription Plans', icon: CreditCard, path: '/plans' },
-    // { id: 'attendance', label: 'Attendance Logs', icon: ClipboardList, path: '/attendance' },
-    // { id: 'reports', label: 'Reports', icon: BarChart3, path: '/reports' },
-    // { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+    { id: 'entries', label: 'Entries', icon: ClipboardList, path: '/entries' },
     { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
@@ -59,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-white">
               <Activity className="w-5 h-5" />
             </div>
-            <span className="font-bold text-xl text-slate-900 tracking-tight">FitCore</span>
+            <span className="font-bold text-xl text-slate-900 tracking-tight">NSF</span>
           </div>
 
           {/* Close button for mobile */}
@@ -89,8 +87,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onClose(); // Close mobile sidebar on select
                     }}
                     className={`flex items-center w-full gap-3 px-4 py-3 rounded-full transition-all duration-200 group text-left ${isActive
-                        ? 'bg-primary text-white font-semibold shadow-md shadow-red-500/10'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-primary text-white font-semibold shadow-md shadow-red-500/10'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                   >
                     <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'

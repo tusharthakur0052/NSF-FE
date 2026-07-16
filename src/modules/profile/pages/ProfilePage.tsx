@@ -6,7 +6,7 @@ import { ChangePasswordModal } from '../components/ChangePasswordModal';
 export const ProfilePage: React.FC = () => {
   const [adminData, setAdminData] = useState({
     fullName: 'Aarav Sharma',
-    email: 'admin@fitcore.io',
+    email: 'admin@NSF.io',
     phone: '+91 98765 43210',
     location: 'Bengaluru, IN',
     joined: 'Jan 12, 2024',
@@ -47,7 +47,7 @@ export const ProfilePage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Left Side: Avatar Card */}
         <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-soft flex flex-col items-center text-center h-fit">
           <div className="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center font-bold text-3xl shadow-md">
@@ -55,8 +55,8 @@ export const ProfilePage: React.FC = () => {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mt-5">{adminData.fullName}</h2>
           <p className="text-xs text-slate-400 font-medium mt-1">{adminData.title}</p>
-          
-          <button 
+
+          <button
             type="button"
             onClick={() => alert('Change Photo clicked')}
             className="w-full mt-6 px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-full shadow-md shadow-red-500/15 transition-all"
@@ -67,13 +67,13 @@ export const ProfilePage: React.FC = () => {
 
         {/* Right Side: Information & Settings */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Contact Information Card */}
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-soft">
             <h3 className="text-base font-bold text-slate-900 mb-4">Contact Information</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
+
               {/* Email */}
               <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50/60 border border-slate-100">
                 <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
@@ -124,7 +124,7 @@ export const ProfilePage: React.FC = () => {
           {/* Account Settings Card */}
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-soft">
             <h3 className="text-base font-bold text-slate-900 mb-4">Account Settings</h3>
-            
+
             <form onSubmit={handleUpdate} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input

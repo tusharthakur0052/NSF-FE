@@ -6,6 +6,7 @@ import { MembersPage } from '@/modules/members';
 import { PlansPage } from '@/modules/plans';
 import { ProfilePage } from '@/modules/profile';
 import { LoginPage } from '@/modules/auth';
+import { EntriesPage } from '@/modules/entries';
 
 const isTokenExpired = (token: string | null): boolean => {
   if (!token) return true;
@@ -114,6 +115,9 @@ export default function App() {
 
             {/* Plans Route */}
             <Route path="/plans" element={<PlansPage />} />
+
+            {/* Entries Route */}
+            <Route path="/entries" element={<EntriesPage />} />
 
             {/* Profile Route */}
             <Route path="/profile" element={<ProfilePage />} />

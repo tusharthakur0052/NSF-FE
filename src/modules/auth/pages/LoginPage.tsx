@@ -1,67 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('http://localhost:9001/auth/login', {
-        method: 'POST',
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName: email,
-          password: password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Please check your login credentials');
-      }
-
-      setSuccess(true);
-      
-      // Store tokens
-      const tokens = data.data;
-      if (tokens && tokens.accessToken) {
-        localStorage.setItem('accessToken', tokens.accessToken);
-      }
-      if (tokens && tokens.refreshToken) {
-        localStorage.setItem('refreshToken', tokens.refreshToken);
-      }
-
-      // Success delay for nice animation experience
-      setTimeout(() => {
-        onLoginSuccess();
-        navigate('/');
-      }, 1000);
-
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    showPassword,
+    setShowPassword,
+    isLoading,
+    error,
+    success,
+    login,
+  } = useAuth(onLoginSuccess);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-canvas relative overflow-hidden px-4">
@@ -71,14 +28,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
       {/* Login Card Container */}
       <div className="w-full max-w-md bg-white border border-slate-100/80 rounded-2xl shadow-soft p-8 md:p-10 transition-all duration-300 relative z-10 hover:shadow-xl">
-        
+
         {/* Brand/Logo Area */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-2 mb-2">
-            {/* Custom Logo SVG mimicking FitCore style */}
+            {/* Custom Logo SVG mimicking NSF style */}
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md shadow-primary/20">
               <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                <path d="M20.57 14.86L22 13.43l-5.43-5.43c-.39-.39-1.02-.39-1.41 0L12 11.14 8.84 7.97c-.39-.39-1.02-.39-1.41 0L2 13.4l1.43 1.43L8.13 10.1l3.16 3.16c.39.39 1.02.39 1.41 0l3.16-3.16 4.71 4.76z"/>
+                <path d="M20.57 14.86L22 13.43l-5.43-5.43c-.39-.39-1.02-.39-1.41 0L12 11.14 8.84 7.97c-.39-.39-1.02-.39-1.41 0L2 13.4l1.43 1.43L8.13 10.1l3.16 3.16c.39.39 1.02.39 1.41 0l3.16-3.16 4.71 4.76z" />
               </svg>
             </div>
             <span className="text-2xl font-bold tracking-tight text-slate-800">
@@ -112,7 +69,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={login} className="space-y-5">
           {/* Email input */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 block">
@@ -127,7 +84,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@fitcore.io"
+                placeholder="admin@NSF.io"
                 disabled={isLoading || success}
                 className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 disabled:bg-slate-50 transition-all text-sm"
               />
