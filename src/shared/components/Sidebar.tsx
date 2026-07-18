@@ -6,10 +6,8 @@ import {
   Users,
   CreditCard,
   ClipboardList,
-  User,
   LogOut,
   X,
-  Activity
 } from 'lucide-react';
 
 interface SidebarProps {
