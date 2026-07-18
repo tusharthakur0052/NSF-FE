@@ -210,7 +210,7 @@ export const MembersPage: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900">{member.name}</div>
-                        <div className="text-xs text-slate-450">ID: {member.id}</div>
+                        {/* <div className="text-xs text-slate-450">ID: {member.id}</div> */}
                       </div>
                     </div>
                   </td>

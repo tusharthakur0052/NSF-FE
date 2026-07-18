@@ -199,7 +199,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Custom SVG Line Chart */}
-          <div className="relative h-64 w-full">
+          <div className="relative h-50 w-full">
             <svg className="w-full h-full" viewBox="0 0 600 220" preserveAspectRatio="none">
               {/* Grid Lines */}
               <line x1="0" y1="20" x2="600" y2="20" stroke="#f1f5f9" strokeDasharray="4 4" />
