@@ -38,7 +38,7 @@ export const usePlans = () => {
             duration: duration,
             price: `₹${plan.price}`,
             status: plan.isActive ? 'Active' : 'Inactive',
-            members: plan.memberCount || 0,
+            members: plan.userCount || 0,
             popular: plan.description.toLowerCase().includes('popular') || false
           };
         });

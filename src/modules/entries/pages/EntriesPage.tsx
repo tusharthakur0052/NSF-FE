@@ -25,7 +25,7 @@ export const EntriesPage: React.FC = () => {
   const entryModal = useModal<any>();
   const deleteModal = useModal<any>();
   const { currentPage, setCurrentPage, resetPage } = usePagination(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchEntries(currentPage, itemsPerPage, searchQuery);

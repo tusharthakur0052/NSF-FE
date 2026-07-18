@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import logoNSF from '@/assets/nsflogoimg.png';
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
@@ -32,14 +33,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         {/* Brand/Logo Area */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-2 mb-2">
-            {/* Custom Logo SVG mimicking NSF style */}
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md shadow-primary/20">
-              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                <path d="M20.57 14.86L22 13.43l-5.43-5.43c-.39-.39-1.02-.39-1.41 0L12 11.14 8.84 7.97c-.39-.39-1.02-.39-1.41 0L2 13.4l1.43 1.43L8.13 10.1l3.16 3.16c.39.39 1.02.39 1.41 0l3.16-3.16 4.71 4.76z" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold tracking-tight text-slate-800">
-              Fit<span className="text-primary">Core</span>
+            <img src={logoNSF} alt="NS Fitness Logo" className="w-10 h-10 object-contain rounded-xl" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <span className="text-2xl font-bold tracking-tight text-slate-950">
+              <span className="text-primary">NS</span>FITNESS
             </span>
           </div>
           <p className="text-slate-500 text-sm text-center">
@@ -84,7 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@NSF.io"
+                placeholder="email"
                 disabled={isLoading || success}
                 className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 disabled:bg-slate-50 transition-all text-sm"
               />

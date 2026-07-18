@@ -14,7 +14,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   siblingCount = 1,
 }) => {
-  if (totalPages <= 1) return null;
+  if (totalPages < 1) return null;
 
   // Generate page numbers array with dots/truncation
   const getPageRange = () => {

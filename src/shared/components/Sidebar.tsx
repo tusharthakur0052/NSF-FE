@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import logoNSF from '@/assets/nsflogoimg.png';
 import {
   LayoutDashboard,
   Users,
@@ -30,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'members', label: 'Members', icon: Users, path: '/member' },
     { id: 'plans', label: 'Subscription Plans', icon: CreditCard, path: '/plans' },
     { id: 'entries', label: 'Entries', icon: ClipboardList, path: '/entries' },
-    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
+    // { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
   return (
@@ -51,11 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header Branding */}
         <div className="flex items-center justify-between h-[72px] px-6 border-b border-slate-100">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => { navigate('/'); onClose(); }}>
-            {/* Red badge logo with dumbbell/fitness logo style */}
-            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-white">
-              <Activity className="w-5 h-5" />
-            </div>
-            <span className="font-bold text-xl text-slate-900 tracking-tight">NSF</span>
+            <img src={logoNSF} alt="NS Fitness Logo" className="w-10 h-10 object-contain rounded" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <span className="font-bold text-xl tracking-tight text-slate-950">
+              <span className="text-primary">NS</span>FITNESS
+            </span>
           </div>
 
           {/* Close button for mobile */}

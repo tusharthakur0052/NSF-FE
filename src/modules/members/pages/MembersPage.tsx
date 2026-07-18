@@ -26,13 +26,15 @@ export interface Member {
   dob?: string;
   fingerprintId?: string;
   address?: string;
-  subscriptionPlanId?: string;
+  subscriptionPlanId?: any;
 }
 
 export const MembersPage: React.FC = () => {
   const {
     members,
     loading,
+    totalPages,
+    totalMembers,
     fetchData,
     handleAddMember,
     handleEditMember,
@@ -46,11 +48,11 @@ export const MembersPage: React.FC = () => {
   const memberModal = useModal<Member>();
   const deleteModal = useModal<Member>();
   const { currentPage, setCurrentPage, resetPage } = usePagination(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchData(statusFilter);
-  }, [statusFilter, fetchData]);
+    fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
+  }, [currentPage, searchQuery, statusFilter, planFilter, fetchData]);
 
   // Get Initials for Avatar
   const getInitials = (name: string) => {
@@ -59,43 +61,23 @@ export const MembersPage: React.FC = () => {
 
   const onAddMemberSave = async (data: any) => {
     await handleAddMember(data);
-    fetchData(statusFilter);
+    fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
     resetPage();
   };
 
   const onEditMemberSave = async (id: string, data: any) => {
     await handleEditMember(id, data);
-    fetchData(statusFilter);
+    fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
   };
 
   const onDeleteConfirm = async () => {
     if (deleteModal.activeItem) {
       await handleDeleteMember(deleteModal.activeItem.id);
-      fetchData(statusFilter);
+      fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
       deleteModal.close();
       resetPage();
     }
   };
-
-  // Filter & Search Logic
-  const filteredMembers = members.filter((member) => {
-    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.phone.includes(searchQuery) ||
-      member.id.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesPlan = planFilter === 'All Plans' || member.plan.toLowerCase() === planFilter.toLowerCase();
-
-    const matchesStatus = statusFilter === 'All Status' || member.status === statusFilter;
-
-    return matchesSearch && matchesPlan && matchesStatus;
-  });
-
-  // Calculate paginated slice
-  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
-  const paginatedMembers = filteredMembers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
@@ -126,7 +108,7 @@ export const MembersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Members</h1>
-          <p className="text-slate-500 mt-1 text-sm">{filteredMembers.length} members</p>
+          <p className="text-slate-500 mt-1 text-sm">{totalMembers} members</p>
         </div>
 
         <div className="flex gap-3">
@@ -219,7 +201,7 @@ export const MembersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedMembers.map((member) => (
+              {members.map((member) => (
                 <tr key={member.id} className="hover:bg-slate-50/40 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
@@ -239,7 +221,7 @@ export const MembersPage: React.FC = () => {
                     {member.age}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">
-                    {member.plan}
+                    {member?.subscriptionPlanId?.title}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${member.status === 'Active'
@@ -291,7 +273,7 @@ export const MembersPage: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {filteredMembers.length === 0 && (
+              {members.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm font-medium">
                     No members found matching the filters.

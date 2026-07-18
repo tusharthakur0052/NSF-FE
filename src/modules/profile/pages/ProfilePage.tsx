@@ -5,10 +5,10 @@ import { ChangePasswordModal } from '../components/ChangePasswordModal';
 
 export const ProfilePage: React.FC = () => {
   const [adminData, setAdminData] = useState({
-    fullName: 'Aarav Sharma',
+    fullName: 'Admin',
     email: 'admin@NSF.io',
     phone: '+91 98765 43210',
-    location: 'Bengaluru, IN',
+    location: 'Jalandhar Punjab, IN',
     joined: 'Jan 12, 2024',
     title: 'Gym Administrator'
   });

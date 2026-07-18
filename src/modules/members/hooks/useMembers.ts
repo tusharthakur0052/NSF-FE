@@ -5,6 +5,8 @@ export const useMembers = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(0);
 
   const getHeaders = useCallback(() => {
     const token = localStorage.getItem('accessToken');
@@ -15,7 +17,7 @@ export const useMembers = () => {
     };
   }, []);
 
-  const fetchData = useCallback(async (statusFilter: string) => {
+  const fetchData = useCallback(async (page: number, limit: number, search: string, statusFilter: string, planFilter: string) => {
     try {
       setLoading(true);
       const headers = getHeaders();
@@ -25,17 +27,34 @@ export const useMembers = () => {
       const plansData = await plansResponse.json();
       let activePlans = [];
       const planMap: Record<string, string> = {};
+      const planTitleToIdMap: Record<string, string> = {};
 
       if (plansData && plansData.success && Array.isArray(plansData.data)) {
         activePlans = plansData.data;
         setPlans(activePlans);
         activePlans.forEach((p: any) => {
           planMap[p._id] = p.title;
+          planTitleToIdMap[p.title.toLowerCase()] = p._id;
         });
       }
 
       // Fetch members
-      const url = `${process.env.VITE_API_BASE_URL}/users${statusFilter === 'Expired' ? '?nonActive=true' : ''}`;
+      let url = `${process.env.VITE_API_BASE_URL}/users?page=${page}&limit=${limit}`;
+      if (statusFilter && statusFilter !== 'All Status') {
+        url += `&status=${encodeURIComponent(statusFilter)}`;
+      }
+      if (planFilter && planFilter !== 'All Plans') {
+        const mappedPlanId = planTitleToIdMap[planFilter.toLowerCase()];
+        if (mappedPlanId) {
+          url += `&planId=${mappedPlanId}`;
+        } else {
+          url += `&planId=${encodeURIComponent(planFilter)}`;
+        }
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
       const membersResponse = await fetch(url, { headers });
       const membersData = await membersResponse.json();
 
@@ -58,6 +77,8 @@ export const useMembers = () => {
           };
         });
         setMembers(mappedMembers);
+        setTotalMembers(membersData.total || mappedMembers.length);
+        setTotalPages(membersData.totalPages || Math.ceil((membersData.total || membersData.data.length) / limit));
       }
     } catch (error) {
       console.error('Error fetching members data:', error);
@@ -153,6 +174,8 @@ export const useMembers = () => {
     members,
     plans,
     loading,
+    totalPages,
+    totalMembers,
     fetchData,
     handleAddMember,
     handleEditMember,
