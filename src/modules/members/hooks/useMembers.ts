@@ -65,15 +65,17 @@ export const useMembers = () => {
             name: `${user.firstName} ${user.lastName}`,
             phone: user.phoneNumber,
             age: user.age,
-            plan: planMap[user.subscriptionPlanId] || 'Standard',
+            plan: user.subscriptionPlanId?.title || planMap[user.subscriptionPlanId] || 'Standard',
             status: user.subscriptionStatus || (user.subscriptionIsActive ? 'Active' : 'Expired'),
             lastVisit: user.updatedAt ? new Date(user.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             joinDate: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             latestSubscriptionDate: user.latestSubscriptionDate ? new Date(user.latestSubscriptionDate).toISOString().split('T')[0] : '-',
+            subscriptionExpiryDate: user.subscriptionExpiryDate ? new Date(user.subscriptionExpiryDate).toISOString().split('T')[0] : '-',
             dob: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
             fingerprintId: user.fingerPrint || '',
+            admission_No: user.admission_No || '',
             address: user.address || '',
-            subscriptionPlanId: user.subscriptionPlanId,
+            subscriptionPlanId: user.subscriptionPlanId?._id || user.subscriptionPlanId || '',
           };
         });
         setMembers(mappedMembers);
@@ -100,6 +102,7 @@ export const useMembers = () => {
         dateOfBirth: new Date(newMemberData.dob).toISOString(),
         address: newMemberData.address,
         fingerPrint: newMemberData.fingerprintId || 'FP-0001',
+        admission_No: newMemberData.admissionNo || '',
         subscriptionPlanId: newMemberData.plan,
         subscriptionIsActive: newMemberData.status === 'Active',
         paymentMethod: newMemberData.paymentMethod || 'Cash',
@@ -134,6 +137,7 @@ export const useMembers = () => {
         dateOfBirth: new Date(updatedData.dob).toISOString(),
         address: updatedData.address,
         fingerPrint: updatedData.fingerprintId || 'FP-0001',
+        admission_No: updatedData.admissionNo || '',
         subscriptionPlanId: updatedData.plan,
         subscriptionIsActive: updatedData.status === 'Active'
       };
@@ -170,6 +174,94 @@ export const useMembers = () => {
     }
   }, [getHeaders]);
 
+  const handleImportExcel = useCallback(async (file: File) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${process.env.VITE_API_BASE_URL}/users/import`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to import excel data');
+      }
+
+      const result = await response.json();
+      alert(result.message || 'Import successful!');
+    } catch (error: any) {
+      alert(error.message || 'Something went wrong while importing the Excel file.');
+    }
+  }, []);
+
+  const handleExportExcel = useCallback(async () => {
+    try {
+      const headers = getHeaders();
+      // Fetch plans first to map IDs to plan names
+      const plansResponse = await fetch(`${process.env.VITE_API_BASE_URL}/subscription-plans`, { headers });
+      const plansData = await plansResponse.json();
+      const planMap: Record<string, string> = {};
+      if (plansData && plansData.success && Array.isArray(plansData.data)) {
+        plansData.data.forEach((p: any) => {
+          planMap[p._id] = p.title;
+        });
+      }
+
+      // Fetch all members (limit=10000 to get everyone)
+      const url = `${process.env.VITE_API_BASE_URL}/users?page=1&limit=10000`;
+      const response = await fetch(url, { headers });
+      const data = await response.json();
+
+      if (data && data.success && Array.isArray(data.data)) {
+        const csvRows = [
+          ['S No.', 'Name', 'Admission No. id', 'Mob. No.', 'Date of Joining', 'latest Date Sub.', 'Plan', 'Expiry Date', 'Status']
+        ];
+
+        data.data.forEach((user: any, index: number) => {
+          const joinDate = user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : '';
+          const latestSubDate = user.latestSubscriptionDate ? new Date(user.latestSubscriptionDate).toISOString().split('T')[0] : '';
+          const expiryDate = user.subscriptionExpiryDate ? new Date(user.subscriptionExpiryDate).toISOString().split('T')[0] : '';
+          const planTitle = planMap[user.subscriptionPlanId] || 'Basic';
+          const name = `${user.firstName} ${user.lastName}`;
+
+          csvRows.push([
+            String(index + 1),
+            name,
+            user.fingerPrint || '',
+            user.phoneNumber || '',
+            joinDate,
+            latestSubDate,
+            planTitle,
+            expiryDate,
+            user.subscriptionStatus || (user.subscriptionIsActive ? 'Active' : 'Expired')
+          ]);
+        });
+
+        const csvContent = csvRows
+          .map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+          .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const urlBlob = URL.createObjectURL(blob);
+        link.setAttribute('href', urlBlob);
+        link.setAttribute('download', `Members_Export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error: any) {
+      alert(error.message || 'Something went wrong while exporting data.');
+    }
+  }, [getHeaders]);
+
   return {
     members,
     plans,
@@ -180,5 +272,7 @@ export const useMembers = () => {
     handleAddMember,
     handleEditMember,
     handleDeleteMember,
+    handleImportExcel,
+    handleExportExcel,
   };
 };

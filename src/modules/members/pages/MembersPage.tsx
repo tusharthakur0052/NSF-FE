@@ -7,7 +7,8 @@ import {
   Eye,
   Edit3,
   RotateCw,
-  Trash2
+  Trash2,
+  Upload
 } from 'lucide-react';
 import { AddMemberModal } from '../components/AddMemberModal';
 import { Select, Pagination, DeleteConfirmationModal, useModal, usePagination } from '@/shared';
@@ -23,8 +24,10 @@ export interface Member {
   lastVisit: string;
   joinDate: string;
   latestSubscriptionDate?: string;
+  subscriptionExpiryDate?: string;
   dob?: string;
   fingerprintId?: string;
+  admission_No?: string;
   address?: string;
   subscriptionPlanId?: any;
 }
@@ -39,6 +42,8 @@ export const MembersPage: React.FC = () => {
     handleAddMember,
     handleEditMember,
     handleDeleteMember,
+    handleImportExcel,
+    handleExportExcel,
   } = useMembers();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,6 +84,13 @@ export const MembersPage: React.FC = () => {
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      await handleImportExcel(e.target.files[0]);
+      fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
+    }
+  };
+
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
     resetPage();
@@ -112,7 +124,25 @@ export const MembersPage: React.FC = () => {
         </div>
 
         <div className="flex gap-3">
-          <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm transition-all">
+          <input
+            type="file"
+            id="excel-file-input"
+            accept=".xlsx, .xls"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            onClick={() => document.getElementById('excel-file-input')?.click()}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm transition-all"
+          >
+            <Upload className="w-4 h-4 text-slate-400" />
+            <span>Import Excel</span>
+          </button>
+
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm transition-all"
+          >
             <Download className="w-4 h-4 text-slate-400" />
             <span>Export CSV</span>
           </button>
@@ -197,6 +227,7 @@ export const MembersPage: React.FC = () => {
                 {/* <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Last Visit</th> */}
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Join Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Latest Subscription</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Expiry Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -221,7 +252,7 @@ export const MembersPage: React.FC = () => {
                     {member.age}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">
-                    {member?.subscriptionPlanId?.title}
+                    {member.plan}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${member.status === 'Active'
@@ -238,6 +269,9 @@ export const MembersPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
                     {member.latestSubscriptionDate}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
+                    {member.subscriptionExpiryDate}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1.5">
@@ -275,7 +309,7 @@ export const MembersPage: React.FC = () => {
               ))}
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm font-medium">
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400 text-sm font-medium">
                     No members found matching the filters.
                   </td>
                 </tr>

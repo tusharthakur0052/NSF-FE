@@ -27,6 +27,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     dob: '',
     age: '',
     fingerprintId: '',
+    admissionNo: '',
     address: '',
     plan: 'Standard',
     status: 'Active',
@@ -48,6 +49,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           dob: (member as any).dob || '',
           age: member.age?.toString() || '',
           fingerprintId: (member as any).fingerprintId || '',
+          admissionNo: member.admission_No || '',
           address: (member as any).address || '',
           plan: (member as any).subscriptionPlanId || member.plan || '',
           status: member.status || 'Active',
@@ -62,6 +64,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           dob: '',
           age: '',
           fingerprintId: '',
+          admissionNo: '',
           address: '',
           plan: 'Standard',
           status: 'Active',
@@ -156,6 +159,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       joinDate: formData.joinDate,
       dob: formData.dob,
       fingerprintId: formData.fingerprintId,
+      admissionNo: formData.admissionNo,
       address: formData.address,
       paymentMethod: formData.paymentMethod,
     };
@@ -174,6 +178,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       dob: '',
       age: '',
       fingerprintId: '',
+      admissionNo: '',
       address: '',
       plan: 'Standard',
       status: 'Active',
@@ -299,6 +304,15 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 value={formData.age}
                 onChange={handleChange}
                 placeholder="25"
+                disabled={mode === 'view'}
+              />
+
+              <Input
+                label="Admission No. id"
+                name="admissionNo"
+                value={formData.admissionNo}
+                onChange={handleChange}
+                placeholder="1"
                 disabled={mode === 'view'}
               />
 
