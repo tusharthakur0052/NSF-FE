@@ -13,8 +13,7 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
   value,
   documentId,
   onChange,
-  disabled = false,
-  mode = 'add',
+  disabled = false
 }) => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
