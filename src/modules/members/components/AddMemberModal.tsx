@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, CreditCard, Smartphone, MapPin, Fingerprint, Calendar } from 'lucide-react';
 import { Input, TextArea, Select } from '@/shared';
+import { MemberPhotoCapture } from './MemberPhotoCapture';
 import type { Member } from '../pages/MembersPage';
 
 interface AddMemberModalProps {
@@ -33,6 +34,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     status: 'Active',
     joinDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'Cash',
+    imageUrl: '',
+    documentId: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,6 +58,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           status: member.status || 'Active',
           joinDate: member.joinDate || new Date().toISOString().split('T')[0],
           paymentMethod: (member as any).paymentMethod || 'Cash',
+          imageUrl: (member as any).imageUrl || '',
+          documentId: (member as any).documentId || '',
         });
       } else {
         setFormData({
@@ -70,6 +75,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           status: 'Active',
           joinDate: new Date().toISOString().split('T')[0],
           paymentMethod: 'Cash',
+          imageUrl: '',
+          documentId: '',
         });
       }
       setErrors({});
@@ -162,6 +169,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       admissionNo: formData.admissionNo,
       address: formData.address,
       paymentMethod: formData.paymentMethod,
+      imageUrl: formData.imageUrl,
+      documentId: formData.documentId || null,
     };
 
     if (mode === 'edit' && member && onEditMember) {
@@ -184,6 +193,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       status: 'Active',
       joinDate: new Date().toISOString().split('T')[0],
       paymentMethod: 'Cash',
+      imageUrl: '',
+      documentId: '',
     });
     onClose();
   };
@@ -242,6 +253,21 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+
+          {/* Member Photo Capture / Upload Section */}
+          <MemberPhotoCapture
+            value={formData.imageUrl}
+            documentId={formData.documentId}
+            onChange={(url, docId) =>
+              setFormData((prev) => ({
+                ...prev,
+                imageUrl: url,
+                documentId: docId !== undefined ? docId : prev.documentId,
+              }))
+            }
+            disabled={mode === 'view'}
+            mode={mode}
+          />
 
           {/* Section: Personal Info */}
           <div>

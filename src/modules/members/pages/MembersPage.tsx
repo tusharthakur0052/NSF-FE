@@ -30,6 +30,8 @@ export interface Member {
   admission_No?: string;
   address?: string;
   subscriptionPlanId?: any;
+  imageUrl?: string;
+  documentId?: string;
 }
 
 export const MembersPage: React.FC = () => {
@@ -221,10 +223,8 @@ export const MembersPage: React.FC = () => {
               <tr className="border-b border-slate-100 bg-slate-50/50">
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Member</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Age</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Plan</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                {/* <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Last Visit</th> */}
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Join Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Latest Subscription</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Expiry Date</th>
@@ -236,8 +236,12 @@ export const MembersPage: React.FC = () => {
                 <tr key={member.id} className="hover:bg-slate-50/40 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs">
-                        {getInitials(member.name)}
+                      <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs overflow-hidden flex-shrink-0">
+                        {member.imageUrl ? (
+                          <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover" />
+                        ) : (
+                          getInitials(member.name)
+                        )}
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900">{member.name}</div>
@@ -247,9 +251,6 @@ export const MembersPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
                     {member.phone}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-650 font-medium">
-                    {member.age}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">
                     {member.plan}

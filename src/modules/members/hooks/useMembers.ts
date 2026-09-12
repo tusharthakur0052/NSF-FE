@@ -76,6 +76,8 @@ export const useMembers = () => {
             admission_No: user.admission_No || '',
             address: user.address || '',
             subscriptionPlanId: user.subscriptionPlanId?._id || user.subscriptionPlanId || '',
+            imageUrl: user.imageUrl || '',
+            documentId: user.documentId?._id || user.documentId || '',
           };
         });
         setMembers(mappedMembers);
@@ -107,6 +109,8 @@ export const useMembers = () => {
         subscriptionIsActive: newMemberData.status === 'Active',
         paymentMethod: newMemberData.paymentMethod || 'Cash',
         joinDate: newMemberData.joinDate,
+        imageUrl: newMemberData.imageUrl || '',
+        documentId: newMemberData.documentId || null,
       };
 
       const response = await fetch(`${process.env.VITE_API_BASE_URL}/users`, {
@@ -139,7 +143,9 @@ export const useMembers = () => {
         fingerPrint: updatedData.fingerprintId || 'FP-0001',
         admission_No: updatedData.admissionNo || '',
         subscriptionPlanId: updatedData.plan,
-        subscriptionIsActive: updatedData.status === 'Active'
+        subscriptionIsActive: updatedData.status === 'Active',
+        imageUrl: updatedData.imageUrl || '',
+        documentId: updatedData.documentId || null,
       };
 
       const response = await fetch(`${process.env.VITE_API_BASE_URL}/users/${id}`, {
