@@ -15,6 +15,7 @@ interface SelectProps {
   variant?: 'default' | 'pill';
   disabled?: boolean;
   placeholder?: string;
+  error?: string;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -26,6 +27,7 @@ export const Select: React.FC<SelectProps> = ({
   variant = 'default',
   disabled = false,
   placeholder,
+  error,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,11 @@ export const Select: React.FC<SelectProps> = ({
 
   const buttonClasses = variant === 'pill'
     ? "w-full flex items-center justify-between pl-4 pr-3.5 py-2.5 text-sm bg-slate-50 border-0 rounded-full hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-left text-slate-700 font-medium"
-    : "w-full flex items-center justify-between px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white focus:border-primary transition-all text-left text-slate-700 font-medium";
+    : `w-full flex items-center justify-between px-3.5 py-2.5 text-sm bg-slate-50 border rounded-lg hover:bg-slate-100/50 focus:outline-none focus:ring-2 focus:bg-white transition-all text-left text-slate-700 font-medium ${
+        error
+          ? 'border-red-500 focus:ring-red-200 focus:border-red-500'
+          : 'border-slate-200 focus:ring-primary/20 focus:border-primary'
+      }`;
 
   return (
     <div className="w-full relative" ref={containerRef}>
@@ -93,6 +99,11 @@ export const Select: React.FC<SelectProps> = ({
             );
           })}
         </div>
+      )}
+      {error && (
+        <span className="text-[10px] text-red-500 font-medium mt-1 block">
+          {error}
+        </span>
       )}
     </div>
   );

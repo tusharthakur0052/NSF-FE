@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from '@/shared';
 
 export const useEntries = () => {
   const [entries, setEntries] = useState<any[]>([]);
@@ -60,11 +61,13 @@ export const useEntries = () => {
       }
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to save entry');
       }
+
+      toast.success(editingEntryId ? 'Entry updated successfully!' : 'Entry created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while saving the entry.');
+      console.error('Save entry error:', error);
     }
   }, [getHeaders]);
 
@@ -77,11 +80,13 @@ export const useEntries = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to delete entry');
       }
+
+      toast.success('Entry deleted successfully!');
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while deleting the entry.');
+      console.error('Delete entry error:', error);
     }
   }, [getHeaders]);
 
@@ -95,3 +100,4 @@ export const useEntries = () => {
     handleDeleteEntry,
   };
 };
+

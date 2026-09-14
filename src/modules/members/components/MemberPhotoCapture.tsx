@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Trash2, RefreshCw, X, Check, User, Loader2 } from 'lucide-react';
+import { toast } from '@/shared';
 
 interface MemberPhotoCaptureProps {
   value?: string;
@@ -49,9 +50,12 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
       }
     } catch (err: any) {
       console.error('Camera access error:', err);
-      setCameraError(err.message || 'Unable to access camera. Please check permissions.');
+      const msg = err.message || 'Unable to access camera. Please check camera permissions.';
+      setCameraError(msg);
+      toast.error(msg, { title: 'Camera Error' });
     }
   };
+
 
   useEffect(() => {
     if (isCameraOpen && videoRef.current && streamRef.current) {
@@ -123,6 +127,7 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
         const { url, documentId: newDocId } = await uploadImageToS3(blob);
         onChange(url, newDocId);
         stopCamera();
+        toast.success('Photo captured and uploaded successfully!');
       } catch (err: any) {
         console.error('Image upload failed:', err);
         setCameraError(err.message || 'Failed to upload photo. Please try again.');
@@ -155,7 +160,9 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
     }
 
     onChange('', '');
+    toast.info('Photo removed.');
   };
+
 
   return (
     <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 transition-all">

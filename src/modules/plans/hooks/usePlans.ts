@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from '@/shared';
 import type { Plan } from '../components/AddEditPlanModal';
 
 export const usePlans = () => {
@@ -64,13 +65,14 @@ export const usePlans = () => {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         throw new Error(errData.message || 'Failed to update plan status');
       }
 
+      toast.success(`Plan ${newIsActive ? 'activated' : 'deactivated'} successfully!`);
       await fetchPlans();
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while updating plan status.');
+      console.error('Toggle plan status error:', error);
     }
   }, [plans, getHeaders, fetchPlans]);
 
@@ -82,13 +84,14 @@ export const usePlans = () => {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
         throw new Error(errData.message || 'Failed to delete plan');
       }
 
+      toast.success('Plan deleted successfully!');
       await fetchPlans();
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while deleting the plan.');
+      console.error('Delete plan error:', error);
     }
   }, [getHeaders, fetchPlans]);
 
@@ -114,9 +117,11 @@ export const usePlans = () => {
         });
 
         if (!response.ok) {
-          const errData = await response.json();
+          const errData = await response.json().catch(() => ({}));
           throw new Error(errData.message || 'Failed to update plan');
         }
+
+        toast.success('Plan updated successfully!');
       } else {
         // Add mode
         const response = await fetch(`${process.env.VITE_API_BASE_URL}/subscription-plans`, {
@@ -126,14 +131,16 @@ export const usePlans = () => {
         });
 
         if (!response.ok) {
-          const errData = await response.json();
+          const errData = await response.json().catch(() => ({}));
           throw new Error(errData.message || 'Failed to create plan');
         }
+
+        toast.success('Plan created successfully!');
       }
 
       await fetchPlans();
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while saving the plan.');
+      console.error('Save plan error:', error);
     }
   }, [getHeaders, fetchPlans]);
 
@@ -150,3 +157,4 @@ export const usePlans = () => {
     handleSavePlan,
   };
 };
+

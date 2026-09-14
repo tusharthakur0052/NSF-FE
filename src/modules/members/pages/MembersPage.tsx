@@ -8,10 +8,9 @@ import {
   Edit3,
   RotateCw,
   Trash2,
-  Upload
 } from 'lucide-react';
 import { AddMemberModal } from '../components/AddMemberModal';
-import { Select, Pagination, DeleteConfirmationModal, useModal, usePagination } from '@/shared';
+import { Select, Pagination, DeleteConfirmationModal, useModal, usePagination, toast } from '@/shared';
 import { useMembers } from '../hooks/useMembers';
 
 export interface Member {
@@ -133,13 +132,13 @@ export const MembersPage: React.FC = () => {
             onChange={handleFileChange}
             className="hidden"
           />
-          <button
+          {/* <button
             onClick={() => document.getElementById('excel-file-input')?.click()}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg shadow-sm transition-all"
           >
             <Upload className="w-4 h-4 text-slate-400" />
             <span>Import Excel</span>
-          </button>
+          </button> */}
 
           <button
             onClick={handleExportExcel}
@@ -291,7 +290,7 @@ export const MembersPage: React.FC = () => {
                         <Edit3 className="w-4.5 h-4.5" />
                       </button>
                       <button
-                        onClick={() => alert(`Renewing plan for ${member.name}`)}
+                        onClick={() => toast.info(`Renewing plan for ${member.name}`)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                         title="Renew Subscription"
                       >

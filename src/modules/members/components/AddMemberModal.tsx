@@ -41,6 +41,16 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [plans, setPlans] = useState<any[]>([]);
 
+  const extractPhoneDigits = (raw: string) => {
+    let cleaned = (raw || '').replace(/\D/g, '');
+    if (cleaned.startsWith('91') && cleaned.length > 10) {
+      cleaned = cleaned.slice(2);
+    } else if (cleaned.startsWith('0') && cleaned.length > 10) {
+      cleaned = cleaned.slice(1);
+    }
+    return cleaned.slice(0, 10);
+  };
+
   React.useEffect(() => {
     if (isOpen) {
       if (member && (mode === 'edit' || mode === 'view')) {
@@ -48,7 +58,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         setFormData({
           firstName: first || '',
           lastName: rest.join(' ') || '',
-          phone: member.phone || '',
+          phone: extractPhoneDigits(member.phone || ''),
           dob: (member as any).dob || '',
           age: member.age?.toString() || '',
           fingerprintId: (member as any).fingerprintId || '',
@@ -111,6 +121,19 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
+    if (name === 'phone') {
+      const digitsOnly = extractPhoneDigits(value);
+      setFormData((prev) => ({ ...prev, phone: digitsOnly }));
+      if (errors.phone) {
+        setErrors((prev) => {
+          const copy = { ...prev };
+          delete copy.phone;
+          return copy;
+        });
+      }
+      return;
+    }
+
     let extra = {};
     if (name === 'dob' && value) {
       const birthDate = new Date(value);
@@ -121,7 +144,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
           calculatedAge--;
         }
-        extra = { age: calculatedAge.toString() };
+        extra = { age: Math.max(0, calculatedAge).toString() };
       }
     }
 
@@ -137,28 +160,93 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    // First Name Validation
+    const trimmedFirst = formData.firstName.trim();
+    if (!trimmedFirst) {
+      newErrors.firstName = 'First name is required';
+    } else if (trimmedFirst.length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters';
+    } else if (!/^[a-zA-Z\s'-]+$/.test(trimmedFirst)) {
+      newErrors.firstName = 'First name can only contain letters';
+    }
+
+    // Last Name Validation
+    const trimmedLast = formData.lastName.trim();
+    if (!trimmedLast) {
+      newErrors.lastName = 'Last name is required';
+    } else if (!/^[a-zA-Z\s'-]+$/.test(trimmedLast)) {
+      newErrors.lastName = 'Last name can only contain letters';
+    }
+
+    // Phone Number Validation (+91 default country code)
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+    } else if (formData.phone.length !== 10) {
+      newErrors.phone = 'Phone number must be exactly 10 digits';
+    } else if (!/^[6-9]\d{9}$/.test(formData.phone)) {
+      newErrors.phone = 'Phone number must start with 6, 7, 8, or 9';
+    }
+
+    // Date of Birth Validation
+    if (!formData.dob) {
+      newErrors.dob = 'Date of birth is required';
+    } else {
+      const birthDate = new Date(formData.dob);
+      const today = new Date();
+      if (isNaN(birthDate.getTime())) {
+        newErrors.dob = 'Please enter a valid date of birth';
+      } else if (birthDate > today) {
+        newErrors.dob = 'Date of birth cannot be in the future';
+      } else {
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 5) {
+          newErrors.dob = 'Member must be at least 5 years old';
+        } else if (age > 120) {
+          newErrors.dob = 'Please enter a valid date of birth';
+        }
+      }
+    }
+
+    // Plan Validation
+    if (mode === 'add' && !formData.plan) {
+      newErrors.plan = 'Please select a membership plan';
+    }
+
+    return newErrors;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Simple Validation
-    const newErrors: Record<string, string> = {};
-    if (!formData.firstName) newErrors.firstName = 'First name is required';
-    if (!formData.lastName) newErrors.lastName = 'Last name is required';
-    if (!formData.phone) newErrors.phone = 'Phone number is required';
-    if (!formData.dob) newErrors.dob = 'Date of birth is required';
-
+    const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
+    const fullPhoneNumber = `+91${formData.phone.trim()}`;
+
     const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      name: `${formData.firstName} ${formData.lastName}`,
-      phone: formData.phone,
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+      phone: fullPhoneNumber,
       age: parseInt(formData.age, 10) || 25,
       plan: formData.plan,
       status: formData.status,
@@ -283,7 +371,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 required={mode !== 'view'}
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="John"
+                placeholder="e.g. Tushar"
+                maxLength={50}
                 error={errors.firstName}
                 disabled={mode === 'view'}
               />
@@ -294,7 +383,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 required={mode !== 'view'}
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Doe"
+                placeholder="e.g. Thakur"
+                maxLength={50}
                 error={errors.lastName}
                 disabled={mode === 'view'}
               />
@@ -303,12 +393,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 label="Phone Number"
                 name="phone"
                 type="tel"
+                prefix="+91"
                 required={mode !== 'view'}
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+91 98765 43210"
+                placeholder="98765 43210"
+                maxLength={10}
                 error={errors.phone}
-                icon={<Smartphone className="w-4 h-4" />}
+                icon={<Smartphone className="w-4 h-4 text-slate-400" />}
                 disabled={mode === 'view'}
               />
 
@@ -316,6 +408,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 label="Date of Birth"
                 name="dob"
                 type="date"
+                max={new Date().toISOString().split('T')[0]}
                 required={mode !== 'view'}
                 value={formData.dob}
                 onChange={handleChange}
@@ -324,13 +417,13 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
               />
 
               <Input
-                label="Age"
+                label="Age (auto-calculated)"
                 name="age"
                 type="number"
                 value={formData.age}
                 onChange={handleChange}
-                placeholder="25"
-                disabled={mode === 'view'}
+                placeholder="e.g. 25"
+                disabled={true}
               />
 
               <Input
@@ -379,6 +472,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 label="Select Plan"
                 options={planOptions}
                 value={formData.plan}
+                error={errors.plan}
+                required={mode !== 'view'}
                 onChange={(val) => handleSelectChange('plan', val)}
                 disabled={mode === 'view'}
               />

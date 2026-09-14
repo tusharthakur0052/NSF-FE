@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Calendar } from 'lucide-react';
-import { Input } from '@/shared';
+import { Input, toast } from '@/shared';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 
 export const ProfilePage: React.FC = () => {
@@ -27,7 +27,7 @@ export const ProfilePage: React.FC = () => {
       ...prev,
       fullName: editName
     }));
-    alert('Profile updated successfully!');
+    toast.success('Profile updated successfully!');
   };
 
   const handleCancel = () => {
@@ -35,7 +35,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handlePasswordConfirm = (_newPassword: string) => {
-    alert('Password updated successfully!');
+    toast.success('Password updated successfully!');
   };
 
   return (
@@ -58,12 +58,13 @@ export const ProfilePage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => alert('Change Photo clicked')}
+            onClick={() => toast.info('Photo upload option will be available soon.')}
             className="w-full mt-6 px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-full shadow-md shadow-red-500/15 transition-all"
           >
             Change Photo
           </button>
         </div>
+
 
         {/* Right Side: Information & Settings */}
         <div className="lg:col-span-2 space-y-6">

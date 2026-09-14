@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from '@/shared';
 import type { Member } from '../pages/MembersPage';
 
 export const useMembers = () => {
@@ -120,11 +121,13 @@ export const useMembers = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to create user');
       }
+
+      toast.success('Member created successfully!');
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while creating the member.');
+      console.error('Add member error:', error);
     }
   }, [getHeaders]);
 
@@ -155,11 +158,13 @@ export const useMembers = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to update user');
       }
+
+      toast.success('Member updated successfully!');
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while updating the member.');
+      console.error('Edit member error:', error);
     }
   }, [getHeaders]);
 
@@ -172,11 +177,13 @@ export const useMembers = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to delete user');
       }
+
+      toast.success('Member deleted successfully!');
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while deleting the member.');
+      console.error('Delete member error:', error);
     }
   }, [getHeaders]);
 
@@ -195,14 +202,14 @@ export const useMembers = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to import excel data');
       }
 
       const result = await response.json();
-      alert(result.message || 'Import successful!');
+      toast.success(result.message || 'Import successful!');
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while importing the Excel file.');
+      console.error('Import excel error:', error);
     }
   }, []);
 
@@ -262,9 +269,10 @@ export const useMembers = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        toast.success('Members exported successfully!');
       }
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while exporting data.');
+      console.error('Export excel error:', error);
     }
   }, [getHeaders]);
 
@@ -282,3 +290,4 @@ export const useMembers = () => {
     handleExportExcel,
   };
 };
+

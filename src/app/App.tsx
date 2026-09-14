@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Sidebar, Topbar } from '@/shared';
+import { Sidebar, Topbar, toast } from '@/shared';
 import { DashboardPage } from '@/modules/dashboard';
 import { MembersPage } from '@/modules/members';
 import { PlansPage } from '@/modules/plans';
@@ -43,17 +43,86 @@ export default function App() {
     setIsAuthenticated(false);
   };
 
-  // Intercept window.fetch to automatically logout on 401 unauthorized responses
+  // Intercept window.fetch to automatically handle API errors, 401 logout, and network issues
   useEffect(() => {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       try {
         const response = await originalFetch(...args);
-        if (response.status === 401) {
-          handleLogout();
+
+        // Allow callers to opt out of global error toast with 'x-skip-toast' header
+        let skipToast = false;
+        const requestInit = args[1];
+        if (requestInit && requestInit.headers) {
+          if (requestInit.headers instanceof Headers) {
+            skipToast = requestInit.headers.get('x-skip-toast') === 'true';
+          } else if (typeof requestInit.headers === 'object') {
+            skipToast = (requestInit.headers as Record<string, string>)['x-skip-toast'] === 'true';
+          }
         }
+
+        if (!response.ok && !skipToast) {
+          const requestUrl = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url || '';
+          const isLoginRequest = requestUrl.includes('/auth/login');
+
+          let errorMessage: string | null = null;
+          try {
+            const clone = response.clone();
+            const errData = await clone.json();
+            errorMessage =
+              (Array.isArray(errData.message) ? errData.message.join(', ') : errData.message) ||
+              errData.error ||
+              (Array.isArray(errData.errors) ? errData.errors.join(', ') : null);
+          } catch {
+            // response was not JSON
+          }
+
+          if (response.status === 401) {
+            if (isLoginRequest) {
+              toast.error(errorMessage || 'Please check your login credentials', {
+                title: 'Authentication Failed',
+              });
+            } else {
+              toast.error(errorMessage || 'Your session has expired. Please log in again.', {
+                title: 'Session Expired',
+              });
+              handleLogout();
+            }
+          } else {
+            const fallbackMessage = `Request failed with status ${response.status} (${response.statusText || 'Error'})`;
+            const errorTitle =
+              response.status >= 500
+                ? 'Server Error'
+                : response.status === 403
+                ? 'Access Denied'
+                : response.status === 404
+                ? 'Not Found'
+                : `API Error (${response.status})`;
+
+            toast.error(errorMessage || fallbackMessage, { title: errorTitle });
+          }
+        }
+
         return response;
-      } catch (error) {
+      } catch (error: any) {
+        const isNetworkError =
+          error?.name === 'TypeError' ||
+          error?.message?.includes('fetch') ||
+          error?.message?.includes('NetworkError') ||
+          !navigator.onLine;
+
+        if (isNetworkError) {
+          toast.error(
+            !navigator.onLine
+              ? 'You are currently offline. Please check your internet connection.'
+              : 'Unable to connect to the server. Please check your network or server status.',
+            { title: 'Network Connection Error' }
+          );
+        } else {
+          toast.error(error?.message || 'An unexpected request error occurred.', {
+            title: 'Request Failed',
+          });
+        }
         throw error;
       }
     };
@@ -62,6 +131,51 @@ export default function App() {
       window.fetch = originalFetch;
     };
   }, []);
+
+  // Global listeners for unhandled frontend runtime errors & promise rejections
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled Promise Rejection:', event.reason);
+      const reason = event.reason;
+      const message =
+        reason instanceof Error
+          ? reason.message
+          : typeof reason === 'string'
+          ? reason
+          : 'An unhandled promise rejection occurred in the application.';
+
+      // Avoid double-toasting network/fetch errors handled by the fetch interceptor
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Request failed with status')
+      ) {
+        return;
+      }
+
+      toast.error(message, {
+        title: 'Frontend Runtime Error',
+      });
+    };
+
+    const handleWindowError = (event: ErrorEvent) => {
+      console.error('Uncaught Frontend Error:', event.error || event.message);
+      if (event.message === 'Script error.') return;
+
+      toast.error(event.message || 'An unexpected frontend script error occurred.', {
+        title: 'JavaScript Error',
+      });
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleWindowError);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleWindowError);
+    };
+  }, []);
+
 
   // Periodically check access token expiration
   useEffect(() => {

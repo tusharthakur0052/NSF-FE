@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from '@/shared';
 
 const getLast12Months = () => {
   const months = [];
@@ -58,15 +59,17 @@ export const useDashboard = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to log entry');
       }
 
+      toast.success('Entry logged successfully!');
       await refreshData();
     } catch (error: any) {
-      alert(error.message || 'Something went wrong while logging the entry.');
+      console.error('Dashboard log entry error:', error);
     }
   }, [getHeaders, refreshData]);
+
 
   useEffect(() => {
     const fetchData = async () => {
