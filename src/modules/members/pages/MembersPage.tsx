@@ -17,6 +17,7 @@ export interface Member {
   id: string;
   name: string;
   phone: string;
+  gender?: string;
   age: number;
   plan: string;
   status: 'Active' | 'Expiring Soon' | 'Expired';
@@ -219,7 +220,6 @@ export const MembersPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Plan</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Join Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Latest Subscription</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Expiry Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
@@ -267,9 +267,6 @@ export const MembersPage: React.FC = () => {
                         }`}>
                         {member.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
-                      {member.joinDate}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
                       {member.latestSubscriptionDate}

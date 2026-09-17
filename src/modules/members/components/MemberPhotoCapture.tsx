@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Trash2, RefreshCw, X, Check, User, Loader2 } from 'lucide-react';
+import { Camera, Trash2, RefreshCw, X, Check, User, Loader2, Eye } from 'lucide-react';
 import { toast } from '@/shared';
 
 interface MemberPhotoCaptureProps {
@@ -17,6 +17,7 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
   disabled = false
 }) => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -169,14 +170,31 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
       <div className="flex flex-col sm:flex-row items-center gap-5">
         {/* Photo Avatar Preview */}
         <div className="relative group shrink-0">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center shadow-inner">
+          <div
+            onClick={() => {
+              if (value && !isDeleting) {
+                setIsPreviewOpen(true);
+              }
+            }}
+            className={`w-20 h-20 rounded-2xl overflow-hidden border-2 ${value ? 'border-primary/40 group-hover:border-primary cursor-pointer hover:shadow-md' : 'border-dashed border-slate-300'
+              } bg-white flex items-center justify-center shadow-inner relative transition-all`}
+            title={value ? 'Click to view photo in full size' : undefined}
+          >
             {isDeleting ? (
               <div className="flex flex-col items-center justify-center p-2 text-slate-400 gap-1">
                 <Loader2 className="w-6 h-6 animate-spin text-red-500" />
                 <span className="text-[9px] font-medium text-slate-500">Deleting...</span>
               </div>
             ) : value ? (
-              <img src={value} alt="Member preview" className="w-full h-full object-cover" />
+              <>
+                <img src={value} alt="Member preview" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                {/* Hover overlay with Eye icon */}
+                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 text-white">
+                  <div className="p-1.5 bg-black/60 rounded-full backdrop-blur-xs shadow-lg">
+                    <Eye className="w-4.5 h-4.5" />
+                  </div>
+                </div>
+              </>
             ) : (
               <div className="flex flex-col items-center text-slate-350">
                 <User className="w-9 h-9 text-slate-300" />
@@ -185,12 +203,16 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
             )}
           </div>
 
+          {/* Delete Photo Button */}
           {value && !disabled && !isDeleting && (
             <button
               type="button"
-              onClick={removePhoto}
+              onClick={(e) => {
+                e.stopPropagation();
+                removePhoto();
+              }}
               title="Remove photo"
-              className="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md transition-transform hover:scale-110"
+              className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md transition-transform hover:scale-110 z-10"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -241,6 +263,38 @@ export const MemberPhotoCapture: React.FC<MemberPhotoCaptureProps> = ({
           )}
         </div>
       </div>
+
+      {/* Full Size Image Preview Modal */}
+      {isPreviewOpen && value && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-200"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <div
+            className="relative max-w-2xl max-h-[85vh] w-full flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute -top-12 right-0 sm:-right-2 p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all z-20 cursor-pointer"
+              title="Close Preview"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Image Card Container */}
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-slate-950/70 max-h-[80vh] flex items-center justify-center p-1">
+              <img
+                src={value}
+                alt="Member Full Preview"
+                className="max-h-[78vh] w-auto max-w-full object-contain rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Live Webcam Modal / Overlay */}
       {isCameraOpen && (

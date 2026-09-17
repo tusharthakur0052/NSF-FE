@@ -30,6 +30,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     fingerprintId: '',
     admissionNo: '',
     address: '',
+    gender: 'Male',
     plan: 'Standard',
     status: 'Active',
     joinDate: new Date().toISOString().split('T')[0],
@@ -55,6 +56,11 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     if (isOpen) {
       if (member && (mode === 'edit' || mode === 'view')) {
         const [first, ...rest] = (member.name || '').split(' ');
+        const memberGender = (member as any).gender;
+        const normalizedGender = memberGender
+          ? memberGender.charAt(0).toUpperCase() + memberGender.slice(1).toLowerCase()
+          : 'Male';
+
         setFormData({
           firstName: first || '',
           lastName: rest.join(' ') || '',
@@ -64,6 +70,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           fingerprintId: (member as any).fingerprintId || '',
           admissionNo: member.admission_No || '',
           address: (member as any).address || '',
+          gender: normalizedGender,
           plan: (member as any).subscriptionPlanId || member.plan || '',
           status: member.status || 'Active',
           joinDate: member.joinDate || new Date().toISOString().split('T')[0],
@@ -81,6 +88,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           fingerprintId: '',
           admissionNo: '',
           address: '',
+          gender: 'Male',
           plan: 'Standard',
           status: 'Active',
           joinDate: new Date().toISOString().split('T')[0],
@@ -248,6 +256,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
       phone: fullPhoneNumber,
       age: parseInt(formData.age, 10) || 25,
+      gender: formData.gender ? formData.gender.toLowerCase() : 'male',
       plan: formData.plan,
       status: formData.status,
       lastVisit: member && mode === 'edit' ? member.lastVisit : new Date().toISOString().split('T')[0],
@@ -274,6 +283,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       phone: '',
       dob: '',
       age: '',
+      gender: 'Male',
       fingerprintId: '',
       admissionNo: '',
       address: '',
@@ -424,6 +434,18 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 onChange={handleChange}
                 placeholder="e.g. 25"
                 disabled={true}
+              />
+
+              <Select
+                label="Gender"
+                options={[
+                  { value: 'Male', label: 'Male' },
+                  { value: 'Female', label: 'Female' },
+                  { value: 'Other', label: 'Other' },
+                ]}
+                value={formData.gender || 'Male'}
+                onChange={(val) => handleSelectChange('gender', val)}
+                disabled={mode === 'view'}
               />
 
               <Input
