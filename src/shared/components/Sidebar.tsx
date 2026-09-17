@@ -6,6 +6,7 @@ import {
   Users,
   CreditCard,
   ClipboardList,
+  Receipt,
   LogOut,
   X,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'members', label: 'Members', icon: Users, path: '/member' },
     { id: 'plans', label: 'Subscription Plans', icon: CreditCard, path: '/plans' },
     { id: 'entries', label: 'Entries', icon: ClipboardList, path: '/entries' },
+    { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/expenses' },
     // { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
