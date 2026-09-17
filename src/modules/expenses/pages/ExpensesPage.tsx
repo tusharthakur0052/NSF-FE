@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -7,9 +7,7 @@ import {
   Trash2,
   Calendar,
   RotateCcw,
-  Receipt,
-  CheckCircle2,
-  Clock,
+  Receipt
 } from 'lucide-react';
 import { AddEditExpenseModal } from '../components/AddEditExpenseModal';
 import {
@@ -138,25 +136,6 @@ export const ExpensesPage: React.FC = () => {
       maximumFractionDigits: 2,
     }).format(amount || 0);
   };
-
-  // Stats calculation on current fetched page or dataset
-  const stats = useMemo(() => {
-    let totalAmt = 0;
-    let paidAmt = 0;
-    let pendingAmt = 0;
-
-    expenses.forEach((item) => {
-      const amt = Number(item.amount) || 0;
-      totalAmt += amt;
-      if (item.isPaid) {
-        paidAmt += amt;
-      } else {
-        pendingAmt += amt;
-      }
-    });
-
-    return { totalAmt, paidAmt, pendingAmt };
-  }, [expenses]);
 
   return (
     <div className="space-y-6">

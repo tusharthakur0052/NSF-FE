@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Receipt, IndianRupee, Calendar, CheckCircle2 } from 'lucide-react';
+import { X, IndianRupee, Calendar, CheckCircle2 } from 'lucide-react';
 import { Input, TextArea, Select } from '@/shared';
 import type { ExpenseItem } from '../hooks/useExpenses';
 
@@ -137,8 +137,8 @@ export const AddEditExpenseModal: React.FC<AddEditExpenseModalProps> = ({
               {mode === 'view'
                 ? 'Viewing gym expense information'
                 : mode === 'edit'
-                ? 'Update expense details and payment status'
-                : 'Record a new expense for the gym'}
+                  ? 'Update expense details and payment status'
+                  : 'Record a new expense for the gym'}
             </p>
           </div>
           <button
