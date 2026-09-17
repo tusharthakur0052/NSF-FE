@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { AddMemberModal } from '../components/AddMemberModal';
-import { Select, Pagination, DeleteConfirmationModal, useModal, usePagination, toast } from '@/shared';
+import { Select, Pagination, DeleteConfirmationModal, useModal, usePagination, useDebounce, toast } from '@/shared';
 import { useMembers } from '../hooks/useMembers';
 
 export interface Member {
@@ -29,6 +29,7 @@ export interface Member {
   admission_No?: string;
   address?: string;
   subscriptionPlanId?: any;
+  paymentMethod?: string;
   imageUrl?: string;
   documentId?: string;
 }
@@ -51,14 +52,16 @@ export const MembersPage: React.FC = () => {
   const [planFilter, setPlanFilter] = useState('All Plans');
   const [statusFilter, setStatusFilter] = useState('All Status');
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   const memberModal = useModal<Member>();
   const deleteModal = useModal<Member>();
   const { currentPage, setCurrentPage, resetPage } = usePagination(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
-  }, [currentPage, searchQuery, statusFilter, planFilter, fetchData]);
+    fetchData(currentPage, itemsPerPage, debouncedSearchQuery, statusFilter, planFilter);
+  }, [currentPage, debouncedSearchQuery, statusFilter, planFilter, fetchData]);
 
   // Get Initials for Avatar
   const getInitials = (name: string) => {
@@ -67,13 +70,13 @@ export const MembersPage: React.FC = () => {
 
   const onAddMemberSave = async (data: any) => {
     await handleAddMember(data);
-    fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
+    fetchData(currentPage, itemsPerPage, debouncedSearchQuery, statusFilter, planFilter);
     resetPage();
   };
 
   const onEditMemberSave = async (id: string, data: any) => {
     await handleEditMember(id, data);
-    fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
+    fetchData(currentPage, itemsPerPage, debouncedSearchQuery, statusFilter, planFilter);
   };
 
   const onDeleteConfirm = async () => {
@@ -88,7 +91,7 @@ export const MembersPage: React.FC = () => {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       await handleImportExcel(e.target.files[0]);
-      fetchData(currentPage, itemsPerPage, searchQuery, statusFilter, planFilter);
+      fetchData(currentPage, itemsPerPage, debouncedSearchQuery, statusFilter, planFilter);
     }
   };
 
@@ -106,14 +109,6 @@ export const MembersPage: React.FC = () => {
     setStatusFilter(val);
     resetPage();
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -231,83 +226,92 @@ export const MembersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {members.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50/40 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs overflow-hidden flex-shrink-0">
-                        {member.imageUrl ? (
-                          <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover" />
-                        ) : (
-                          getInitials(member.name)
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900">{member.name}</div>
-                        {/* <div className="text-xs text-slate-450">ID: {member.id}</div> */}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
-                    {member.phone}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">
-                    {member.plan}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${member.status === 'Active'
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : member.status === 'Expiring Soon'
-                        ? 'bg-amber-50 text-amber-600'
-                        : 'bg-rose-50 text-rose-600'
-                      }`}>
-                      {member.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
-                    {member.joinDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
-                    {member.latestSubscriptionDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
-                    {member.subscriptionExpiryDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => memberModal.openView(member)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        title="View Details"
-                      >
-                        <Eye className="w-4.5 h-4.5" />
-                      </button>
-                      <button
-                        onClick={() => memberModal.openEdit(member)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        title="Edit Member"
-                      >
-                        <Edit3 className="w-4.5 h-4.5" />
-                      </button>
-                      <button
-                        onClick={() => toast.info(`Renewing plan for ${member.name}`)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        title="Renew Subscription"
-                      >
-                        <RotateCw className="w-4.5 h-4.5" />
-                      </button>
-                      <button
-                        onClick={() => deleteModal.openEdit(member)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Delete Member"
-                      >
-                        <Trash2 className="w-4.5 h-4.5" />
-                      </button>
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                     </div>
                   </td>
                 </tr>
-              ))}
-              {members.length === 0 && (
+              ) : members.length > 0 ? (
+                members.map((member) => (
+                  <tr key={member.id} className="hover:bg-slate-50/40 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs overflow-hidden flex-shrink-0">
+                          {member.imageUrl ? (
+                            <img src={member.imageUrl} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            getInitials(member.name)
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900">{member.name}</div>
+                          {/* <div className="text-xs text-slate-450">ID: {member.id}</div> */}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
+                      {member.phone}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">
+                      {member.plan}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${member.status === 'Active'
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : member.status === 'Expiring Soon'
+                          ? 'bg-amber-50 text-amber-600'
+                          : 'bg-rose-50 text-rose-600'
+                        }`}>
+                        {member.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
+                      {member.joinDate}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
+                      {member.latestSubscriptionDate}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-semibold">
+                      {member.subscriptionExpiryDate}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => memberModal.openView(member)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={() => memberModal.openEdit(member)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                          title="Edit Member"
+                        >
+                          <Edit3 className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={() => toast.info(`Renewing plan for ${member.name}`)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                          title="Renew Subscription"
+                        >
+                          <RotateCw className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteModal.openEdit(member)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Delete Member"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
                   <td colSpan={9} className="px-6 py-12 text-center text-slate-400 text-sm font-medium">
                     No members found matching the filters.
@@ -317,11 +321,15 @@ export const MembersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+        {!loading && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalMembers}
+            itemLabel="members"
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {/* Register / Edit / View Member Modal */}

@@ -10,4 +10,5 @@ export * from './context/ToastContext';
 export * from './utils/toast';
 export * from './hooks/usePagination';
 export * from './hooks/useModal';
+export * from './hooks/useDebounce';
 

@@ -16,13 +16,25 @@ export const useEntries = () => {
     };
   }, []);
 
-  const fetchEntries = useCallback(async (page: number, limit: number, search: string) => {
+  const fetchEntries = useCallback(async (
+    page: number,
+    limit: number,
+    search: string,
+    startDate?: string,
+    endDate?: string
+  ) => {
     try {
       setLoading(true);
       const headers = getHeaders();
       let url = `${process.env.VITE_API_BASE_URL}/entries?page=${page}&limit=${limit}`;
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
+      }
+      if (startDate) {
+        url += `&startDate=${encodeURIComponent(startDate)}`;
+      }
+      if (endDate) {
+        url += `&endDate=${encodeURIComponent(endDate)}`;
       }
 
       const response = await fetch(url, { headers });

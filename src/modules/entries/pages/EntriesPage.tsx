@@ -5,10 +5,11 @@ import {
   Eye,
   Edit3,
   Trash2,
-  Calendar
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 import { AddEditEntryModal } from '../components/AddEditEntryModal';
-import { Pagination, DeleteConfirmationModal, useModal, usePagination } from '@/shared';
+import { Pagination, DeleteConfirmationModal, useModal, usePagination, useDebounce } from '@/shared';
 import { useEntries } from '../hooks/useEntries';
 
 export const EntriesPage: React.FC = () => {
@@ -16,35 +17,58 @@ export const EntriesPage: React.FC = () => {
     entries,
     loading,
     totalPages,
+    totalEntries,
     fetchEntries,
     handleSaveEntry,
     handleDeleteEntry,
   } = useEntries();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   const entryModal = useModal<any>();
   const deleteModal = useModal<any>();
   const { currentPage, setCurrentPage, resetPage } = usePagination(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
-    fetchEntries(currentPage, itemsPerPage, searchQuery);
-  }, [currentPage, searchQuery, fetchEntries]);
+    fetchEntries(currentPage, itemsPerPage, debouncedSearchQuery, startDate, endDate);
+  }, [currentPage, debouncedSearchQuery, startDate, endDate, fetchEntries]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     resetPage();
   };
 
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStartDate(e.target.value);
+    resetPage();
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEndDate(e.target.value);
+    resetPage();
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setStartDate('');
+    setEndDate('');
+    resetPage();
+  };
+
   const onSave = async (entryData: any) => {
     await handleSaveEntry(entryData, entryModal.activeItem ? entryModal.activeItem._id : null);
-    fetchEntries(currentPage, itemsPerPage, searchQuery);
+    fetchEntries(currentPage, itemsPerPage, debouncedSearchQuery, startDate, endDate);
   };
 
   const onDeleteConfirm = async () => {
     if (deleteModal.activeItem) {
       await handleDeleteEntry(deleteModal.activeItem._id);
-      fetchEntries(currentPage, itemsPerPage, searchQuery);
+      fetchEntries(currentPage, itemsPerPage, debouncedSearchQuery, startDate, endDate);
       deleteModal.close();
       resetPage();
     }
@@ -87,19 +111,57 @@ export const EntriesPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft flex flex-col md:flex-row gap-4 items-center">
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-soft flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         {/* Search */}
-        <div className="relative w-full md:flex-1">
+        <div className="relative flex-1 min-w-[240px]">
           <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
           </div>
           <input
             type="text"
-            placeholder="Search check-in note..."
+            placeholder="Search member, phone, note..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-slate-800 text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all duration-200"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all duration-200"
           />
+        </div>
+
+        {/* Date Filters */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-xs font-semibold text-slate-500 whitespace-nowrap">From:</label>
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="date"
+                value={startDate}
+                onChange={handleStartDateChange}
+                className="w-full sm:w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-medium focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-xs font-semibold text-slate-500 whitespace-nowrap">To:</label>
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="date"
+                value={endDate}
+                onChange={handleEndDateChange}
+                className="w-full sm:w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs font-medium focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {(startDate || endDate || searchQuery) && (
+            <button
+              onClick={handleClearFilters}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl border border-slate-200 transition-colors whitespace-nowrap"
+              title="Clear Filters"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Clear</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -213,6 +275,8 @@ export const EntriesPage: React.FC = () => {
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
+            totalItems={totalEntries}
+            itemLabel="entries"
             onPageChange={setCurrentPage}
           />
         )}

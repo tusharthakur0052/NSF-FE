@@ -134,6 +134,34 @@ export default function App() {
 
   // Global listeners for unhandled frontend runtime errors & promise rejections
   useEffect(() => {
+    const isIgnoredOrExtensionError = (
+      errorOrMessage: any,
+      stack?: string,
+      filename?: string
+    ): boolean => {
+      const text = `${typeof errorOrMessage === 'string' ? errorOrMessage : errorOrMessage?.message || ''} ${stack || ''} ${filename || ''}`.toLowerCase();
+
+      const ignoredPatterns = [
+        'metamask',
+        'ethereum',
+        'solana',
+        'phantom',
+        'coinbase',
+        'web3',
+        'chrome-extension://',
+        'moz-extension://',
+        'safari-web-extension://',
+        'safari-extension://',
+        'extension context invalidated',
+        'could not establish connection',
+        'receiving end does not exist',
+        'the message port closed',
+        'resizeobserver loop',
+      ];
+
+      return ignoredPatterns.some((pattern) => text.includes(pattern));
+    };
+
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled Promise Rejection:', event.reason);
       const reason = event.reason;
@@ -143,6 +171,12 @@ export default function App() {
           : typeof reason === 'string'
           ? reason
           : 'An unhandled promise rejection occurred in the application.';
+      const stack = reason instanceof Error ? reason.stack : undefined;
+
+      // Filter out browser extension noise (e.g., MetaMask, Coinbase, Phantom)
+      if (isIgnoredOrExtensionError(message, stack)) {
+        return;
+      }
 
       // Avoid double-toasting network/fetch errors handled by the fetch interceptor
       if (
@@ -161,6 +195,10 @@ export default function App() {
     const handleWindowError = (event: ErrorEvent) => {
       console.error('Uncaught Frontend Error:', event.error || event.message);
       if (event.message === 'Script error.') return;
+
+      if (isIgnoredOrExtensionError(event.message, event.error?.stack, event.filename)) {
+        return;
+      }
 
       toast.error(event.message || 'An unexpected frontend script error occurred.', {
         title: 'JavaScript Error',

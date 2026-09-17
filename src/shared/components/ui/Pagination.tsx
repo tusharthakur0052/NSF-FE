@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
+  totalItems?: number;
+  itemLabel?: string;
   onPageChange: (page: number) => void;
   siblingCount?: number;
 }
@@ -11,6 +13,8 @@ interface PaginationProps {
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
+  totalItems,
+  itemLabel = 'results',
   onPageChange,
   siblingCount = 1,
 }) => {
@@ -73,8 +77,14 @@ export const Pagination: React.FC<PaginationProps> = ({
         >
           Previous
         </button>
-        <span className="text-xs font-medium text-slate-500 self-center">
-          Page {currentPage} of {totalPages}
+        <span className="text-xs font-medium text-slate-500 self-center text-center">
+          Page <span className="font-semibold text-slate-700">{currentPage}</span> of{' '}
+          <span className="font-semibold text-slate-700">{totalPages}</span>
+          {typeof totalItems === 'number' && (
+            <span className="block text-[10px] text-slate-400">
+              ({totalItems.toLocaleString()} total {itemLabel})
+            </span>
+          )}
         </span>
         <button
           onClick={() => onPageChange(currentPage + 1)}
@@ -90,9 +100,14 @@ export const Pagination: React.FC<PaginationProps> = ({
         
         {/* Results Counter / helper */}
         <div>
-          <p className="text-sm text-slate-400 font-medium">
-            Showing Page <span className="font-semibold text-slate-700">{currentPage}</span> of{' '}
-            <span className="font-semibold text-slate-700">{totalPages}</span>
+          <p className="text-sm text-slate-500 font-medium">
+            Showing Page <span className="font-semibold text-slate-800">{currentPage}</span> of{' '}
+            <span className="font-semibold text-slate-800">{totalPages}</span>
+            {typeof totalItems === 'number' && (
+              <span className="ml-2 text-slate-400 font-normal">
+                ({totalItems.toLocaleString()} total {itemLabel})
+              </span>
+            )}
           </p>
         </div>
 
