@@ -38,6 +38,7 @@ export interface Member {
 export const MembersPage: React.FC = () => {
   const {
     members,
+    plans,
     loading,
     totalPages,
     totalMembers,
@@ -52,6 +53,14 @@ export const MembersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [planFilter, setPlanFilter] = useState('All Plans');
   const [statusFilter, setStatusFilter] = useState('All Status');
+
+  const planOptions = [
+    { value: 'All Plans', label: 'All Plans' },
+    ...plans.map((p) => ({
+      value: p._id,
+      label: p.title,
+    })),
+  ];
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -174,15 +183,7 @@ export const MembersPage: React.FC = () => {
         <div className="flex flex-wrap w-full md:w-auto items-center gap-3">
           <div className="min-w-[140px] flex-1 sm:flex-initial">
             <Select
-              options={[
-                { value: 'All Plans', label: 'All Plans' },
-                { value: 'Basic', label: 'Basic' },
-                { value: 'Standard', label: 'Standard' },
-                { value: 'Premium', label: 'Premium' },
-                { value: 'Elite', label: 'Elite' },
-                { value: 'Quarterly', label: 'Quarterly' },
-                { value: 'Annual', label: 'Annual' },
-              ]}
+              options={planOptions}
               value={planFilter}
               onChange={handlePlanFilterChange}
               variant="pill"

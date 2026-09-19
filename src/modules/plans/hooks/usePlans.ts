@@ -24,11 +24,14 @@ export const usePlans = () => {
       const resData = await response.json();
       if (resData && resData.success && Array.isArray(resData.data)) {
         const mappedPlans = resData.data.map((plan: any) => {
-          let duration = '1 Month';
+          const numMonths = plan.numberOfMonths || 1;
+          let duration = `${numMonths} ${numMonths === 1 ? 'Month' : 'Months'}`;
           let description = plan.description || '';
           if (description.includes(' | ')) {
             const parts = description.split(' | ');
-            duration = parts[0];
+            if (!plan.numberOfMonths) {
+              duration = parts[0];
+            }
             description = parts.slice(1).join(' | ');
           }
 
@@ -37,10 +40,11 @@ export const usePlans = () => {
             name: plan.title,
             description: description,
             duration: duration,
+            numberOfMonths: numMonths,
             price: `₹${plan.price}`,
             status: plan.isActive ? 'Active' : 'Inactive',
             members: plan.userCount || 0,
-            popular: plan.description.toLowerCase().includes('popular') || false
+            popular: (plan.description || '').toLowerCase().includes('popular') || false
           };
         });
         setPlans(mappedPlans);
@@ -98,14 +102,15 @@ export const usePlans = () => {
   const handleSavePlan = useCallback(async (planData: Plan, editingPlanId: string | null) => {
     try {
       const headers = getHeaders();
-      const serializedDescription = `${planData.duration} | ${planData.description}`;
+      const numMonths = Number(planData.numberOfMonths) || 1;
       // Clean price string to number
-      const numericPrice = Number(planData.price.replace(/[^\d]/g, ''));
+      const numericPrice = Number(String(planData.price).replace(/[^\d]/g, ''));
 
       const payload = {
         title: planData.name,
-        description: serializedDescription,
+        description: planData.description,
         price: numericPrice,
+        numberOfMonths: numMonths,
       };
 
       if (editingPlanId) {

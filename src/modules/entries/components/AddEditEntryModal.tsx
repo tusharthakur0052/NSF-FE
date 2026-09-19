@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, User, CreditCard, Calendar } from 'lucide-react';
 import { TextArea, Select } from '@/shared';
 
@@ -28,45 +28,94 @@ export const AddEditEntryModal: React.FC<AddEditEntryModalProps> = ({
   const [users, setUsers] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSearchingUsers, setIsSearchingUsers] = useState<boolean>(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchUsers = useCallback((searchQuery: string = '') => {
+    const token = localStorage.getItem('accessToken');
+    const headers = {
+      'accept': '*/*',
+      'Authorization': `Bearer ${token}`,
+    };
+
+    setIsSearchingUsers(true);
+    const params = new URLSearchParams();
+    if (mode === 'add') {
+      params.append('nonActive', 'true');
+    }
+    params.append('limit', '50');
+    if (searchQuery.trim()) {
+      params.append('search', searchQuery.trim());
+    }
+
+    fetch(`${process.env.VITE_API_BASE_URL}/users?${params.toString()}`, { headers })
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData && resData.success && Array.isArray(resData.data)) {
+          setUsers((prev) => {
+            // Retain selected user in the list if editing/viewing so selection is not lost
+            const currentSelectedId = formData.userId;
+            if (currentSelectedId && !resData.data.some((u: any) => u._id === currentSelectedId)) {
+              const currentSelected = prev.find((u: any) => u._id === currentSelectedId);
+              if (currentSelected) {
+                return [currentSelected, ...resData.data];
+              }
+            }
+            return resData.data;
+          });
+        }
+      })
+      .catch((err) => console.error('Error fetching users:', err))
+      .finally(() => setIsSearchingUsers(false));
+  }, [mode, formData.userId]);
+
+  const handleUserSearch = (searchQuery: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchUsers(searchQuery);
+    }, 300);
+  };
 
   useEffect(() => {
     if (isOpen) {
       const token = localStorage.getItem('accessToken');
       const headers = {
         'accept': '*/*',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
       };
 
-      // Fetch users: in add mode, fetch only active members; otherwise fetch all
-      const userUrl = `${process.env.VITE_API_BASE_URL}/users${mode === 'add' ? '?nonActive=true' : ''}`;
-      fetch(userUrl, { headers })
-        .then(res => res.json())
-        .then(resData => {
-          if (resData && resData.success && Array.isArray(resData.data)) {
-            setUsers(resData.data);
-          }
-        })
-        .catch(err => console.error('Error fetching users:', err));
+      fetchUsers('');
 
       // Fetch plans
       fetch(`${process.env.VITE_API_BASE_URL}/subscription-plans`, { headers })
-        .then(res => res.json())
-        .then(resData => {
+        .then((res) => res.json())
+        .then((resData) => {
           if (resData && resData.success && Array.isArray(resData.data)) {
             setPlans(resData.data);
           }
         })
-        .catch(err => console.error('Error fetching plans:', err));
+        .catch((err) => console.error('Error fetching plans:', err));
 
       if (entryToEdit && (mode === 'edit' || mode === 'view')) {
         const rawDate = entryToEdit.entryDate || entryToEdit.createdAt || new Date().toISOString();
+        const editUserId = entryToEdit.userId?._id || entryToEdit.userId || '';
         setFormData({
-          userId: entryToEdit.userId?._id || entryToEdit.userId || '',
+          userId: editUserId,
           subscriptionPlanId: entryToEdit.subscriptionPlanId?._id || entryToEdit.subscriptionPlanId || '',
           note: entryToEdit.note || '',
           date: new Date(rawDate).toISOString().split('T')[0],
           paymentMethod: entryToEdit.paymentMethod || 'Cash',
         });
+        if (entryToEdit.userId && typeof entryToEdit.userId === 'object') {
+          setUsers((prev) => {
+            if (!prev.some((u) => u._id === editUserId)) {
+              return [entryToEdit.userId, ...prev];
+            }
+            return prev;
+          });
+        }
       } else {
         setFormData({
           userId: '',
@@ -78,16 +127,22 @@ export const AddEditEntryModal: React.FC<AddEditEntryModalProps> = ({
       }
       setErrors({});
     }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, [isOpen, entryToEdit, mode]);
 
   // Auto-select the user's plan when a user is selected (only in add mode)
   const handleUserChange = (value: string) => {
-    setFormData(prev => ({ ...prev, userId: value }));
+    setFormData((prev) => ({ ...prev, userId: value }));
 
     if (mode === 'add' && value) {
-      const selectedUser = users.find(u => u._id === value);
+      const selectedUser = users.find((u) => u._id === value);
       if (selectedUser && selectedUser.subscriptionPlanId) {
-        setFormData(prev => ({ ...prev, subscriptionPlanId: selectedUser.subscriptionPlanId }));
+        setFormData((prev) => ({ ...prev, subscriptionPlanId: selectedUser.subscriptionPlanId }));
       }
     }
   };
@@ -205,6 +260,9 @@ export const AddEditEntryModal: React.FC<AddEditEntryModalProps> = ({
               options={userOptions}
               disabled={mode === 'view'}
               placeholder="Search or select a member"
+              searchable={true}
+              onSearch={handleUserSearch}
+              isLoading={isSearchingUsers}
             />
             {errors.userId && <p className="text-rose-500 text-xs mt-1">{errors.userId}</p>}
           </div>

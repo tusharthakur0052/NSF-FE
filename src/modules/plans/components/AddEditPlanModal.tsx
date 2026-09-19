@@ -6,7 +6,8 @@ export interface Plan {
   id?: string;
   name: string;
   description: string;
-  duration: string;
+  duration?: string;
+  numberOfMonths?: number;
   price: string;
   status: 'Active' | 'Inactive';
   members?: number;
@@ -30,6 +31,7 @@ export const AddEditPlanModal: React.FC<AddEditPlanModalProps> = ({
     name: '',
     description: '',
     duration: '1 Month',
+    numberOfMonths: 1,
     price: '',
     status: 'Active',
     popular: false,
@@ -39,12 +41,18 @@ export const AddEditPlanModal: React.FC<AddEditPlanModalProps> = ({
 
   useEffect(() => {
     if (planToEdit) {
-      setFormData(planToEdit);
+      const numMonths = planToEdit.numberOfMonths || 1;
+      setFormData({
+        ...planToEdit,
+        numberOfMonths: numMonths,
+        duration: `${numMonths} ${numMonths === 1 ? 'Month' : 'Months'}`,
+      });
     } else {
       setFormData({
         name: '',
         description: '',
         duration: '1 Month',
+        numberOfMonths: 1,
         price: '',
         status: 'Active',
         popular: false,
@@ -57,7 +65,17 @@ export const AddEditPlanModal: React.FC<AddEditPlanModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'numberOfMonths') {
+      const num = parseInt(value, 10) || 0;
+      setFormData((prev) => ({
+        ...prev,
+        numberOfMonths: num,
+        duration: `${num} ${num === 1 ? 'Month' : 'Months'}`,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+
     if (errors[name]) {
       setErrors((prev) => {
         const copy = { ...prev };
@@ -69,6 +87,21 @@ export const AddEditPlanModal: React.FC<AddEditPlanModalProps> = ({
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePresetMonths = (months: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      numberOfMonths: months,
+      duration: `${months} ${months === 1 ? 'Month' : 'Months'}`,
+    }));
+    if (errors.numberOfMonths) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.numberOfMonths;
+        return copy;
+      });
+    }
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,22 +116,22 @@ export const AddEditPlanModal: React.FC<AddEditPlanModalProps> = ({
     if (!formData.name) newErrors.name = 'Plan title is required';
     if (!formData.description) newErrors.description = 'Description is required';
     if (!formData.price) newErrors.price = 'Price is required';
+    if (!formData.numberOfMonths || Number(formData.numberOfMonths) < 1) {
+      newErrors.numberOfMonths = 'Valid duration in months is required (min: 1)';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    onSave(formData);
+    onSave({
+      ...formData,
+      numberOfMonths: Number(formData.numberOfMonths) || 1,
+      duration: `${formData.numberOfMonths} ${Number(formData.numberOfMonths) === 1 ? 'Month' : 'Months'}`,
+    });
     onClose();
   };
-
-  const durationOptions = [
-    { value: '1 Month', label: '1 Month' },
-    { value: '3 Months', label: '3 Months' },
-    { value: '6 Months', label: '6 Months' },
-    { value: '12 Months', label: '12 Months' },
-  ];
 
   const statusOptions = [
     { value: 'Active', label: 'Active' },
@@ -158,12 +191,35 @@ export const AddEditPlanModal: React.FC<AddEditPlanModalProps> = ({
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Duration"
-              options={durationOptions}
-              value={formData.duration}
-              onChange={(val) => handleSelectChange('duration', val)}
-            />
+            <div>
+              <Input
+                label="Duration (Months) *"
+                name="numberOfMonths"
+                type="number"
+                min="1"
+                required
+                value={formData.numberOfMonths?.toString() || ''}
+                onChange={handleChange}
+                placeholder="e.g. 1"
+                error={errors.numberOfMonths}
+              />
+              <div className="flex items-center gap-1.5 mt-2">
+                {[1, 3, 6, 12].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => handlePresetMonths(m)}
+                    className={`px-2 py-0.5 text-[11px] font-semibold rounded-md border transition-all ${
+                      formData.numberOfMonths === m
+                        ? 'bg-primary text-white border-primary shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {m}M
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <Input
               label="Price (₹)"
